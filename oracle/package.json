@@ -1,0 +1,45 @@
+{
+  "name": "@worldxi/oracle",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WorldXI oracle backend: TxLINE + API-Football veri, fantasy puanlama motoru, onchain committer, leaderboard API",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "sync-idl": "cp ../target/idl/worldxi.json src/chain/idl/worldxi.json && cp ../target/types/worldxi.ts src/chain/idl/worldxi.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "txline:subscribe": "tsx src/scripts/txline-subscribe.ts",
+    "build:dataset": "tsx src/scripts/build-dataset.ts",
+    "reprice": "tsx src/scripts/reprice.ts",
+    "photos:apifootball": "tsx src/scripts/apifootball-photos.ts",
+    "photos:fix": "tsx src/scripts/fix-photos.ts",
+    "register": "tsx src/scripts/register-players.ts",
+    "backfill": "tsx src/scripts/backfill-scores.ts",
+    "orchestrate": "tsx src/index.ts",
+    "backfill:settle": "tsx src/scripts/settle-matchday.ts",
+    "set-budget": "tsx src/scripts/set-budget.ts",
+    "demo-squad": "tsx src/scripts/demo-squad.ts",
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "demo-league": "tsx src/scripts/demo-sponsor-league.ts"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.31.1",
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.98.0",
+    "bs58": "^6.0.0",
+    "dotenv": "^16.4.5",
+    "i18n-iso-countries": "^7.13.0",
+    "express": "^4.21.2",
+    "tweetnacl": "^1.0.3",
+    "ws": "^8.18.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
