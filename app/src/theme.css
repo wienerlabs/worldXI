@@ -1,0 +1,132 @@
+/* WorldXI theme - sober World Cup palette: dark base + gold + pitch green.
+   No gradients. Two accent colors only. */
+:root {
+  --bg: #0b0e0c;
+  --bg-elevated: #12161300;
+  --surface: #141a16;
+  --surface-2: #1b221d;
+  --border: #2a332c;
+  --border-strong: #3a463c;
+
+  --gold: #c9a24b;
+  --gold-dim: #9c7d3a;
+  --green: #1f7a54;
+  --green-dim: #14503a;
+
+  --text: #f2f0e8;
+  --text-muted: #93a096;
+  --danger: #d9534f;
+
+  --radius: 12px;
+  --maxw: 1160px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--text); }
+body {
+  font-family: "Inter", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+h1, h2, h3, h4 { line-height: 1.15; font-weight: 800; letter-spacing: -0.01em; }
+img { max-width: 100%; }
+
+.container { max-width: var(--maxw); margin: 0 auto; padding: 0 22px; }
+
+/* Top navigation */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 22px;
+  background: rgba(11, 14, 12, 0.86);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+}
+.brand { display: flex; align-items: center; gap: 9px; font-weight: 900; font-size: 20px; letter-spacing: 0.02em; }
+.brand-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--gold); color: #14110a; display: grid; place-items: center; font-weight: 900; font-size: 15px; }
+.brand .x { color: var(--gold); }
+.nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.nav a { color: var(--text-muted); font-size: 14px; font-weight: 600; padding: 8px 12px; border-radius: 8px; }
+.nav a:hover { color: var(--text); background: var(--surface); }
+.nav a.active { color: var(--gold); background: var(--surface); }
+
+/* Buttons - solid, no gradient */
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 10px; font-weight: 700; font-size: 14px; transition: filter .15s ease; }
+.btn:hover { filter: brightness(1.08); }
+.btn-primary { background: var(--gold); color: #14110a; }
+.btn-green { background: var(--green); color: #eafff5; }
+.btn-outline { border: 1px solid var(--border-strong); color: var(--text); }
+.btn-outline:hover { border-color: var(--gold); color: var(--gold); background: transparent; filter: none; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+
+/* Cards & surfaces */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+.badge-c { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--gold); color: #14110a; font-weight: 900; font-size: 11px; }
+.pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; border: 1px solid var(--border-strong); color: var(--text-muted); }
+.pill-gold { color: var(--gold); border-color: var(--gold-dim); }
+
+.muted { color: var(--text-muted); }
+.gold { color: var(--gold); }
+.green { color: var(--green); }
+
+.grid { display: grid; gap: 14px; }
+.section-title { font-size: 22px; margin-bottom: 4px; }
+.section-sub { color: var(--text-muted); font-size: 14px; margin-bottom: 18px; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); font-size: 14px; }
+th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+tbody tr:hover { background: var(--surface-2); }
+
+/* Live indicator */
+.live { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: 0.05em; }
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* Inputs */
+input, select { background: var(--surface); border: 1px solid var(--border-strong); color: var(--text); border-radius: 9px; padding: 9px 12px; font-size: 14px; }
+input:focus, select:focus { outline: none; border-color: var(--gold); }
+
+/* Wallet adapter button override (kept solid gold) */
+.wallet-adapter-button-trigger { background: var(--gold) !important; color: #14110a !important; border-radius: 10px !important; height: 40px !important; font-weight: 700 !important; }
+
+/* ---- Gamification helpers (flat, gold/green only) ---- */
+
+/* Rank medals for leaderboards */
+.medal { font-size: 15px; }
+.rank-num { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; font-weight: 800; font-size: 12px; background: var(--surface-2); color: var(--text-muted); }
+tr.top1 { background: rgba(201,162,75,0.09); }
+tr.top1 .rank-num { background: var(--gold); color: #14110a; }
+tr.top2 .rank-num { background: #c7ccd1; color: #14110a; }
+tr.top3 .rank-num { background: #b9793f; color: #fff; }
+
+/* Small round avatar (leaderboard, lists) */
+.avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; object-position: top center; border: 1.5px solid var(--border-strong); background: var(--surface-2); vertical-align: middle; }
+
+/* Budget / XP progress bar */
+.progress { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; border: 1px solid var(--border); }
+.progress > span { display: block; height: 100%; background: var(--green); transition: width .3s ease; }
+.progress > span.over { background: var(--danger); }
+
+/* Stat chips (goals, assists, clean sheets…) */
+.stat-chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); font-size: 13px; font-weight: 700; }
+.stat-chip b { color: var(--gold); font-size: 15px; }
+
+/* Card rarity glow - single-color, subtle */
+.glow-legendary { box-shadow: 0 0 0 1px var(--gold), 0 8px 26px rgba(201,162,75,0.28); }
+.glow-rare { box-shadow: 0 0 0 1px var(--green), 0 8px 22px rgba(31,122,84,0.22); }
+
+/* Hover lift for interactive cards */
+.hover-lift { transition: transform .14s ease, box-shadow .14s ease; }
+.hover-lift:hover { transform: translateY(-4px); box-shadow: 0 14px 32px rgba(0,0,0,0.5); }
+
+/* Manager level badge */
+.level-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--gold-dim); color: var(--gold); font-weight: 800; font-size: 12px; }
+
+/* Count-up pop when points change */
+@keyframes pop { 0%{transform:scale(1)} 40%{transform:scale(1.18)} 100%{transform:scale(1)} }
+.pop { display: inline-block; animation: pop .4s ease; }

@@ -1,0 +1,5 @@
+node_modules/
+dist/
+public/players.json
+public/countries.json
+.env
