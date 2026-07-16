@@ -20,6 +20,8 @@ interface UltimateCardProps {
   photo?: string;
   flagUrl?: string | null;
   flagEmoji?: string;
+  /** Real tournament points; shown under the name when provided (>= 0). */
+  points?: number;
   /** Rendered width in px; the 280×400 card scales to fit. */
   width?: number;
 }
@@ -29,7 +31,7 @@ interface UltimateCardProps {
  * Shows photo · name · position · flag · tier only (rating and stat rows removed).
  * Rotating conic frame, holographic special tier, edge comet, pointer 3D tilt.
  */
-export function UltimateCard({ name, tier, position, photo, flagUrl, flagEmoji, width = 280 }: UltimateCardProps) {
+export function UltimateCard({ name, tier, position, photo, flagUrl, flagEmoji, points, width = 280 }: UltimateCardProps) {
   const el = useRef<HTMLDivElement>(null);
   const k = width / 280;
   const path = tier === "special" ? PATH_SPECIAL : PATH_BASE;
@@ -82,6 +84,12 @@ export function UltimateCard({ name, tier, position, photo, flagUrl, flagEmoji, 
 
             <div className="uc-name-stats">
               <div className="uc-name">{name}</div>
+              {points !== undefined && (
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 4, marginTop: 3 }}>
+                  <span style={{ fontSize: 17, fontWeight: 900, color: "#e8bd54", lineHeight: 1, textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}>{points}</span>
+                  <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.6)" }}>PTS</span>
+                </div>
+              )}
             </div>
 
             <svg className="uc-edge" viewBox="0 0 280 400" preserveAspectRatio="none" aria-hidden="true">

@@ -106,4 +106,29 @@ export const fetchMatchDays = (): Promise<{ days: Array<{ day: number; count: nu
 export const fetchMatchDetail = (fixtureId: number): Promise<MatchDetailData> =>
   getJson<MatchDetailData>(`${API_BASE}/match/${fixtureId}`);
 
+// --- Team leaderboard (teams ranked by summed player points) ---
+export interface TeamLeaderRow {
+  iso: string;
+  name: string;
+  flag: string | null;
+  totalPoints: number;
+  playerCount: number;
+  rank: number;
+  /** Matchday-by-matchday points (how many the team scored in each match). */
+  breakdown: Array<{ matchday: number; points: number }>;
+}
+export const fetchTeamLeaderboard = (): Promise<TeamLeaderRow[]> =>
+  getJson<TeamLeaderRow[]>(`${API_BASE}/leaderboard/teams`);
+
+// --- Per-player tournament stats (real: matches, points, MVP, best single match) ---
+export interface PlayerStats {
+  playerId: number;
+  totalPoints: number;
+  matchesPlayed: number;
+  mvpCount: number;
+  bestScore: number;
+}
+export const fetchPlayerStats = (): Promise<PlayerStats[]> =>
+  getJson<PlayerStats[]>(`${API_BASE}/players/stats`);
+
 export const apiBase = API_BASE;

@@ -15,7 +15,7 @@ export function NftGallery() {
   const { connected } = useWallet();
   const wallet = useAnchorWallet();
   const { connection } = useConnection();
-  const { playerById, countryByIso } = useData();
+  const { playerById, countryByIso, statsById } = useData();
   const { picks } = useSquad();
 
   const [cards, setCards] = useState<OnchainCard[]>([]);
@@ -90,10 +90,10 @@ export function NftGallery() {
   const mintedIds = new Set(cards.map((c) => c.playerId));
   const unminted = picks.filter((p) => !mintedIds.has(p.playerId));
 
-  /* ---------- Vault aggregates (display-only) ---------- */
-  const totalPoints = cards.reduce((s, c) => s + c.totalPoints, 0);
-  const totalMatches = cards.reduce((s, c) => s + c.matchesPlayed, 0);
-  const totalMvp = cards.reduce((s, c) => s + c.mvpCount, 0);
+  /* ---------- Vault aggregates: REAL tournament stats for owned cards ---------- */
+  const totalPoints = cards.reduce((s, c) => s + (statsById.get(c.playerId)?.totalPoints ?? 0), 0);
+  const totalMatches = cards.reduce((s, c) => s + (statsById.get(c.playerId)?.matchesPlayed ?? 0), 0);
+  const totalMvp = cards.reduce((s, c) => s + (statsById.get(c.playerId)?.mvpCount ?? 0), 0);
   const msgIsError = msg ? /error|reject/i.test(msg) : false;
 
   return (
@@ -255,10 +255,10 @@ export function NftGallery() {
                     On-chain dossier
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 14px" }}>
-                    <Dossier label="Matches" value={c.matchesPlayed} />
-                    <Dossier label="Points" value={c.totalPoints} accent="var(--gold)" />
-                    <Dossier label="MVP" value={c.mvpCount} />
-                    <Dossier label="Best" value={c.bestSingleScore} />
+                    <Dossier label="Matches" value={statsById.get(c.playerId)?.matchesPlayed ?? 0} />
+                    <Dossier label="Points" value={statsById.get(c.playerId)?.totalPoints ?? 0} accent="var(--gold)" />
+                    <Dossier label="MVP" value={statsById.get(c.playerId)?.mvpCount ?? 0} />
+                    <Dossier label="Best" value={statsById.get(c.playerId)?.bestScore ?? 0} />
                   </div>
                 </div>
               </div>
