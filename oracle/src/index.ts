@@ -70,7 +70,7 @@ async function main(): Promise<void> {
   }
 
   // Live stream: TxLINE real feed (fixtures + SSE + on-chain subscribe).
-  const orchestrator = new Orchestrator(cfg, state, txline, committer, () => api.broadcast());
+  const orchestrator = new Orchestrator(cfg, state, txline, committer, () => api.broadcast(), (goal) => api.broadcastGoal(goal));
   await orchestrator.init();
 
   const abort = new AbortController();

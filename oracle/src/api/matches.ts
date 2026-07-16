@@ -160,7 +160,7 @@ function espnToEvent(e: EspnMatchEvent): MatchEvent {
     type: e.type,
     minute: e.minute,
     team: e.team,
-    playerId: null,
+    playerId: e.playerId,
     playerInId: null,
     playerOutId: null,
     primary: e.primary,

@@ -18,6 +18,7 @@ export interface EspnMatchEvent {
   team: "home" | "away" | null;
   primary: string | null; // scorer / carded player / player coming on
   secondary: string | null; // assist / player going off
+  playerId: number | null; // ESPN athlete id of the primary participant (== our universe playerId)
   text: string;
 }
 
@@ -38,7 +39,7 @@ interface SummaryEvent {
   clock?: { value?: number; displayValue?: string };
   team?: { id?: string };
   text?: string;
-  participants?: Array<{ athlete?: { displayName?: string } }>;
+  participants?: Array<{ athlete?: { id?: string; displayName?: string } }>;
 }
 interface SummaryHeader {
   competitions?: Array<{
@@ -100,12 +101,15 @@ export async function fetchEspnSummary(eventId: string): Promise<EspnSummary> {
     const teamId = e.team?.id;
     const team: EspnMatchEvent["team"] = teamId === homeId ? "home" : teamId === awayId ? "away" : null;
     const parts = e.participants ?? [];
+    const rawId = parts[0]?.athlete?.id;
+    const playerId = rawId != null && /^\d+$/.test(String(rawId)) ? Number.parseInt(String(rawId), 10) : null;
     out.push({
       type,
       minute: parseMinute(e.clock),
       team,
       primary: parts[0]?.athlete?.displayName ?? null,
       secondary: parts[1]?.athlete?.displayName ?? null,
+      playerId,
       text: e.text ?? "",
     });
   }

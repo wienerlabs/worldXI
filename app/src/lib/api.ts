@@ -186,4 +186,28 @@ export interface ManagerDetailData {
 export const fetchManagerDetail = (owner: string): Promise<ManagerDetailData> =>
   getJson<ManagerDetailData>(`${API_BASE}/manager/${owner}`);
 
+// --- Live goals (celebration overlay) ---
+export interface LiveGoalTeam {
+  iso: string | null;
+  name: string;
+  flag: string | null;
+}
+export interface LiveGoal {
+  id: string;
+  fixtureId: number;
+  playerId: number | null;
+  scorerPoints: number;
+  minute: number | null;
+  scorerTeam: "home" | "away" | null;
+  ownGoal: boolean;
+  home: LiveGoalTeam;
+  away: LiveGoalTeam;
+  score: { home: number; away: number };
+  ts: number;
+}
+export const fetchLiveGoals = (): Promise<LiveGoal[]> => getJson<LiveGoal[]>(`${API_BASE}/live/goals`);
+
+/** WebSocket URL for the oracle (same host/port as the REST API). */
+export const wsUrl = (): string => API_BASE.replace(/^http/, "ws");
+
 export const apiBase = API_BASE;

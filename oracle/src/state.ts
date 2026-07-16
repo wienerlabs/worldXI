@@ -18,6 +18,28 @@ export interface StoredMatchEvent {
   playerOutId: number | null;
 }
 
+interface GoalTeam {
+  iso: string | null;
+  name: string;
+  flag: string | null;
+}
+/** A goal, broadcast live to the frontend celebration overlay. All fields are real
+ *  (TxLINE snapshot: scorer + minute + running score). id = `${fixtureId}:${seq}`. */
+export interface GoalEvent {
+  id: string;
+  fixtureId: number;
+  playerId: number | null;
+  /** Scorer's live tournament total (raw points) at the moment of the goal. */
+  scorerPoints: number;
+  minute: number | null;
+  scorerTeam: "home" | "away" | null;
+  ownGoal: boolean;
+  home: GoalTeam;
+  away: GoalTeam;
+  score: { home: number; away: number };
+  ts: number;
+}
+
 export class OracleState {
   readonly universe = new Map<number, PlayerUniverseEntry>();
   countries: Country[] = [];
@@ -32,6 +54,19 @@ export class OracleState {
   /** TxLINE fixtureId -> events accumulated from the live SSE (full timeline). Since TxLINE
    *  does not provide a historical timeline for finished matches, only live-watched matches fill this. */
   readonly matchEvents = new Map<number, StoredMatchEvent[]>();
+  /** Recent goals for the live celebration overlay (most recent last, capped). */
+  readonly recentGoals: GoalEvent[] = [];
+  private readonly emittedGoalKeys = new Set<string>();
+
+  /** Records a goal for the celebration feed. Returns false if it was already emitted
+   *  (deduplicated by id), so the caller only broadcasts genuinely new goals. */
+  recordGoal(goal: GoalEvent): boolean {
+    if (this.emittedGoalKeys.has(goal.id)) return false;
+    this.emittedGoalKeys.add(goal.id);
+    this.recentGoals.push(goal);
+    if (this.recentGoals.length > 40) this.recentGoals.shift();
+    return true;
+  }
 
   /** Adds a live SSE event to the match timeline (deduplicated by seq). */
   recordMatchEvent(txFixtureId: number, ev: StoredMatchEvent): void {

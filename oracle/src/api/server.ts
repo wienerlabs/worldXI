@@ -37,6 +37,7 @@ interface UserRow {
 export interface ApiHandle {
   server: Server;
   broadcast: () => void;
+  broadcastGoal: (goal: unknown) => void;
   close: () => Promise<void>;
 }
 
@@ -177,6 +178,10 @@ export function startApiServer(
     res.json(rows);
   });
 
+  // Recent goals for the live celebration overlay. The frontend marks these as already-seen
+  // on first load (so old goals do not re-trigger) and celebrates only new goals from the WS.
+  app.get("/live/goals", (_req: Request, res: Response) => res.json(state.recentGoals));
+
   app.get("/live/matchday", (_req: Request, res: Response) => {
     const md = state.matchdayResults.get(state.activeMatchday);
     const rows = md
@@ -221,18 +226,20 @@ export function startApiServer(
 
   const server = createServer(app);
   const wss = new WebSocketServer({ server });
-  const broadcast = (): void => {
-    const msg = JSON.stringify({ type: "tick", matchday: state.activeMatchday });
+  const send = (msg: string): void => {
     for (const client of wss.clients) {
       if (client.readyState === client.OPEN) client.send(msg);
     }
   };
+  const broadcast = (): void => send(JSON.stringify({ type: "tick", matchday: state.activeMatchday }));
+  const broadcastGoal = (goal: unknown): void => send(JSON.stringify({ type: "goal", goal }));
 
   server.listen(cfg.API_PORT, () => logger.info("API listening", { port: cfg.API_PORT }));
 
   return {
     server,
     broadcast,
+    broadcastGoal,
     close: () =>
       new Promise<void>((resolveClose) => {
         wss.close();

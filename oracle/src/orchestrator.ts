@@ -21,11 +21,13 @@ import type { Config } from "./config.js";
 import { logger, errorMessage } from "./logger.js";
 import type { TxlineClient } from "./txline/client.js";
 import type { Committer } from "./chain/committer.js";
-import type { OracleState, StoredMatchEvent } from "./state.js";
-import type { TxScores } from "./txline/types.js";
+import type { GoalEvent, OracleState, StoredMatchEvent } from "./state.js";
+import type { TxFixture, TxScores } from "./txline/types.js";
 import { discoverWorldCupFixtures } from "./pipeline/universe.js";
+import { toIsoAlpha3 } from "./pipeline/countries.js";
 import { bridgeFixtures, type BridgedFixture } from "./espn/bridge.js";
 import { fetchBoxScore } from "./espn/boxscore.js";
+import { fetchEspnSummary, type EspnSummary } from "./espn/matchEvents.js";
 import { scoreEspnMatch } from "./scoring/espnScorer.js";
 import { extractTxlineEvents } from "./txline/events.js";
 
@@ -38,19 +40,23 @@ const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms
 export class Orchestrator {
   private bridged: BridgedFixture[] = [];
   private readonly byTxId = new Map<number, BridgedFixture>();
+  private readonly fxById = new Map<number, TxFixture>();
   private readonly dirty = new Set<number>();
+  private readonly espnCache = new Map<string, { data: EspnSummary; ts: number }>();
 
   constructor(
     private readonly cfg: Config,
     private readonly state: OracleState,
     private readonly txline: TxlineClient,
     private readonly committer: Committer,
-    private readonly onUpdate?: () => void
+    private readonly onUpdate?: () => void,
+    private readonly onGoal?: (goal: GoalEvent) => void
   ) {}
 
   async init(): Promise<void> {
     // TxLINE CORE: which matches are in the tournament (fixtures discovered from TxLINE).
     const txFixtures = await discoverWorldCupFixtures(this.txline, this.cfg);
+    for (const f of txFixtures) this.fxById.set(f.FixtureId, f);
     // Bridge each TxLINE fixture to an ESPN event (scoring truth from ESPN).
     this.bridged = await bridgeFixtures(txFixtures);
     for (const b of this.bridged) {
@@ -61,14 +67,101 @@ export class Orchestrator {
     logger.info("Orchestrator ready", { txFixtures: txFixtures.length, bridged: this.bridged.length });
   }
 
-  /** Starts the live stream: first replay (demo), then real-time TxLINE SSE.
-   *  ORCHESTRATOR_SKIP_REPLAY=true -> replay is skipped, live SSE is listened to directly
-   *  (for a real match day; no need to replay history). */
+  /** ESPN summary (keyEvents + status) with a short cache to avoid hammering ESPN. */
+  private async espnSummaryFor(espnEventId: string): Promise<EspnSummary> {
+    const now = Date.now();
+    const hit = this.espnCache.get(espnEventId);
+    if (hit && now - hit.ts < 15_000) return hit.data;
+    const data = await fetchEspnSummary(espnEventId);
+    this.espnCache.set(espnEventId, { data, ts: now });
+    return data;
+  }
+
+  /** Resolves an ESPN scorer to our universe playerId: first by ESPN athlete id (== our id),
+   *  then by name (exact, else last-name). Returns null if no confident match. */
+  private resolvePlayer(espnId: number | null, name: string | null): number | null {
+    if (espnId != null && this.state.universe.has(espnId)) return espnId;
+    if (!name) return null;
+    const norm = (s: string): string =>
+      s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
+    const target = norm(name);
+    if (!target) return null;
+    const targetLast = target.split(" ").pop() as string;
+    let lastMatch: number | null = null;
+    for (const [id, p] of this.state.universe) {
+      const pn = norm(p.name);
+      if (pn === target) return id;
+      if (lastMatch == null && pn.split(" ").pop() === targetLast) lastMatch = id;
+    }
+    return lastMatch;
+  }
+
+  /** Builds goal celebration events for a fixture and broadcasts only the new ones
+   *  (deduplicated by id). TxLINE is the trigger (its snapshot change re-processes the
+   *  fixture); ESPN keyEvents are the auxiliary detail for WHO scored (scorer + minute).
+   *  The scorer's national team decides which side scored, so the running score and the
+   *  red number are always correct. Own goals credit the opponent. */
+  private async emitGoals(fixtureId: number): Promise<void> {
+    const fx = this.fxById.get(fixtureId);
+    const b = this.byTxId.get(fixtureId);
+    if (!fx || !b) return;
+    const summary = await this.espnSummaryFor(b.espnEventId);
+    const goals = summary.events.filter((e) => e.type === "goal" || e.type === "own_goal" || e.type === "penalty");
+    if (goals.length === 0) return;
+
+    const iso1 = toIsoAlpha3(fx.Participant1);
+    const iso2 = toIsoAlpha3(fx.Participant2);
+    const flagOf = (iso: string | null): string | null =>
+      iso ? this.state.countries.find((c) => c.isoCode === iso)?.flagEmoji ?? null : null;
+    const p1Home = fx.Participant1IsHome !== false;
+    const home = p1Home
+      ? { iso: iso1, name: fx.Participant1, flag: flagOf(iso1) }
+      : { iso: iso2, name: fx.Participant2, flag: flagOf(iso2) };
+    const away = p1Home
+      ? { iso: iso2, name: fx.Participant2, flag: flagOf(iso2) }
+      : { iso: iso1, name: fx.Participant1, flag: flagOf(iso1) };
+
+    let h = 0;
+    let a = 0;
+    goals.forEach((ev, i) => {
+      const own = ev.type === "own_goal";
+      const playerId = this.resolvePlayer(ev.playerId, ev.primary);
+      const scorerIso = playerId != null ? this.state.universe.get(playerId)?.nationalTeam ?? null : null;
+      // The player's own side (whose shirt the scorer wears). Prefer national team; fall back to ESPN.
+      const playerTeam: "home" | "away" | null = scorerIso
+        ? scorerIso === home.iso ? "home" : scorerIso === away.iso ? "away" : null
+        : ev.team;
+      // The side whose score goes up (and whose number flashes red). Own goal -> the opponent.
+      const scoringTeam: "home" | "away" | null = own
+        ? playerTeam === "home" ? "away" : playerTeam === "away" ? "home" : ev.team
+        : playerTeam;
+      if (scoringTeam === "home") h += 1;
+      else if (scoringTeam === "away") a += 1;
+      const goal: GoalEvent = {
+        id: `${fixtureId}:${ev.type}:${ev.minute ?? i}:${ev.team ?? "x"}:${ev.primary ?? i}`,
+        fixtureId,
+        playerId,
+        scorerPoints: playerId != null ? this.state.playerLivePoints(playerId) : 0,
+        minute: ev.minute,
+        scorerTeam: scoringTeam,
+        ownGoal: own,
+        home,
+        away,
+        score: { home: h, away: a },
+        ts: Date.now(),
+      };
+      if (this.state.recordGoal(goal)) this.onGoal?.(goal);
+    });
+  }
+
+  /** Starts the live stream. Default = LIVE mode: wait for real matches on the TxLINE SSE
+   *  and score/commit/celebrate them as they happen. Set ORCHESTRATOR_REPLAY=true to first
+   *  replay finished matches (demo: leaderboard + goal celebrations move as if live). */
   async runLive(signal: AbortSignal): Promise<void> {
-    if (process.env.ORCHESTRATOR_SKIP_REPLAY !== "true") {
+    if (process.env.ORCHESTRATOR_REPLAY === "true") {
       await this.replay(signal);
     } else {
-      logger.info("Replay skipped (ORCHESTRATOR_SKIP_REPLAY) - direct live stream");
+      logger.info("Live mode - waiting for real matches (set ORCHESTRATOR_REPLAY=true to simulate)");
     }
     if (signal.aborted) return;
 
@@ -201,6 +294,8 @@ export class Orchestrator {
     const txEvents = snap.length > 0 ? extractTxlineEvents(snap, this.state.universe) : undefined;
     const results = scoreEspnMatch(Number.parseInt(b.espnEventId, 10), box, this.state.universe, txEvents);
     for (const r of results) this.state.upsertResult(matchday, r);
+    // Goal celebration feed AFTER scores are upserted, so the scorer's points are current.
+    await this.emitGoals(txFixtureId);
     return results;
   }
 }

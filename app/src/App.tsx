@@ -4,6 +4,7 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { DataProvider } from "./lib/data";
 import { SquadProvider } from "./lib/squad";
 import { LiveTicker } from "./components/LiveTicker";
+import { GoalCelebration } from "./components/GoalCelebration";
 import { Home } from "./pages/Home";
 import { PitchView } from "./pages/PitchView";
 import { SquadBuilder } from "./pages/SquadBuilder";
@@ -67,6 +68,7 @@ export function App() {
         </header>
 
         <LiveTicker />
+        <GoalCelebration />
 
         <main>
           <div className="container" style={{ padding: "28px 26px 90px" }}>

@@ -9,6 +9,8 @@ interface PlayerCardProps {
   width?: number;
   /** Hide the tournament points row (e.g. selection pools where score is noise). */
   hidePoints?: boolean;
+  /** Exact points to show instead of the live context stats (e.g. a goal's snapshot value). */
+  pointsOverride?: number;
 }
 
 /**
@@ -17,9 +19,9 @@ interface PlayerCardProps {
  * (pitch, gallery, player detail, home) upgrades to the new card with no changes.
  * The real tournament points come from the shared data context (oracle stats).
  */
-export function PlayerCard({ player, country, width = 200, hidePoints }: PlayerCardProps) {
+export function PlayerCard({ player, country, width = 200, hidePoints, pointsOverride }: PlayerCardProps) {
   const { statsById } = useData();
-  const points = hidePoints ? undefined : statsById.get(player.playerId)?.totalPoints;
+  const points = hidePoints ? undefined : pointsOverride ?? statsById.get(player.playerId)?.totalPoints;
   return (
     <UltimateCard
       name={lastName(player.name)}
