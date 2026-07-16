@@ -181,9 +181,9 @@ function MatchRow({ m, onClick }: { m: MatchSummary; onClick: () => void }) {
         alignItems: "center", gap: 14, textAlign: "left", padding: "16px 20px",
         borderLeft: `3px solid ${live ? "var(--live)" : "var(--line)"}`,
       }}>
-      <TeamCell team={m.home} align="right" />
+      <TeamCell team={m.home} />
       <CenterCell m={m} time={time} />
-      <TeamCell team={m.away} align="left" />
+      <TeamCell team={m.away} flip />
     </button>
   );
 }
@@ -226,24 +226,29 @@ function StatusBadge({ m, time }: { m: MatchSummary; time: string }) {
   );
 }
 
-function TeamCell({ team, align }: { team: MatchSummary["home"]; align: "left" | "right" }) {
-  const right = align === "right";
+/** Home reads "name + flag"; away is mirrored to "flag + name". Both hug the centre
+ *  score (home right-aligned, away left-aligned) so the two teams sit symmetrically. */
+function TeamCell({ team, flip }: { team: MatchSummary["home"]; flip?: boolean }) {
+  const name = (
+    <b style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: flip ? "left" : "right" }}>
+      {team.name}
+    </b>
+  );
+  const flag = (
+    <span style={{
+      fontSize: 24, lineHeight: 1, flexShrink: 0, width: 34, textAlign: "center",
+      display: "inline-grid", placeItems: "center", height: 34,
+      background: "var(--surface-3)", border: "1px solid var(--line)", borderRadius: 8,
+    }}>
+      {team.flag ?? "🏳️"}
+    </span>
+  );
   return (
     <span style={{
       display: "flex", alignItems: "center", gap: 11, minWidth: 0,
-      justifyContent: right ? "flex-end" : "flex-start",
-      flexDirection: right ? "row" : "row-reverse",
+      justifyContent: flip ? "flex-start" : "flex-end",
     }}>
-      <b style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: right ? "right" : "left" }}>
-        {team.name}
-      </b>
-      <span style={{
-        fontSize: 24, lineHeight: 1, flexShrink: 0, width: 34, textAlign: "center",
-        display: "inline-grid", placeItems: "center", height: 34,
-        background: "var(--surface-3)", border: "1px solid var(--line)", borderRadius: 8,
-      }}>
-        {team.flag ?? "🏳️"}
-      </span>
+      {flip ? <>{flag}{name}</> : <>{name}{flag}</>}
     </span>
   );
 }
