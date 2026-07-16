@@ -51,89 +51,199 @@ export function Matches() {
     return { dow: DOW[dt.getUTCDay()], date: `${String(dt.getUTCDate()).padStart(2, "0")}/${String(dt.getUTCMonth() + 1).padStart(2, "0")}` };
   };
 
+  const liveNow = matches.filter((m) => m.status === "live" || m.status === "halftime").length;
+  const sel = day !== null ? fmtDay(day) : null;
+
   return (
-    <div style={{ marginTop: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <h1 className="section-title">Matches</h1>
-        <span className="live"><span className="live-dot" /> Live</span>
-      </div>
-      <p className="section-sub">Every World Cup match, live from the TxLINE feed. Scores and events update as they happen.</p>
+    <div style={{ marginTop: 28 }}>
+      {/* ================= HEADER ================= */}
+      <header className="rise" style={{ animationDelay: "0.02s" }}>
+        <div className="between" style={{ alignItems: "flex-end" }}>
+          <div>
+            <div className="eyebrow">TxLINE · Match Center</div>
+            <h1 className="display" style={{ fontSize: "clamp(40px, 6.5vw, 78px)", marginTop: 14 }}>
+              World Cup <span className="gold">Live</span>
+            </h1>
+            <p className="section-sub" style={{ marginTop: 12 }}>
+              Every 2026 fixture, streamed from the on-chain oracle feed. Scores and events
+              settle to Solana the instant they happen.
+            </p>
+          </div>
+          <span className="pill pill-live" style={{ padding: "6px 12px", fontSize: 11 }}>
+            <span className="live-dot" style={{ width: 6, height: 6, background: "#fff", boxShadow: "none" }} />
+            {liveNow > 0 ? `${liveNow} live now` : "Live feed"}
+          </span>
+        </div>
+      </header>
 
-      {/* Gun secici - tum turnuva */}
-      <div style={{ display: "flex", gap: 6, overflowX: "auto", padding: "6px 0", marginBottom: 12 }}>
-        {days.map(({ day: d }) => {
-          const f = fmtDay(d);
-          const active = d === day;
-          return (
-            <button key={d} ref={active ? activeRef : null} onClick={() => setDay(d)}
-              className={active ? "btn btn-primary" : "btn btn-outline"}
-              style={{ padding: "6px 14px", minWidth: 66, flexShrink: 0, display: "flex", flexDirection: "column", gap: 2, alignItems: "center" }}>
-              <span style={{ fontSize: 11, opacity: 0.8 }}>{f.dow}{d === today ? " (today)" : ""}</span>
-              <span style={{ fontWeight: 800, fontSize: 13 }}>{f.date}</span>
-            </button>
-          );
-        })}
-        {days.length === 0 && !err && <span className="muted" style={{ fontSize: 13, padding: "8px 0" }}>Loading schedule...</span>}
+      {/* ================= DAY SELECTOR ================= */}
+      <div className="rise" style={{ animationDelay: "0.1s", marginTop: 26 }}>
+        <div className="eyebrow" style={{ marginBottom: 12 }}>Tournament schedule</div>
+        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, scrollSnapType: "x proximity" }}>
+          {days.map(({ day: d, count }) => {
+            const f = fmtDay(d);
+            const active = d === day;
+            const isToday = d === today;
+            return (
+              <button key={d} ref={active ? activeRef : null} onClick={() => setDay(d)}
+                style={{
+                  flexShrink: 0, minWidth: 74, scrollSnapAlign: "center",
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+                  padding: "10px 14px", borderRadius: "var(--r-sm)",
+                  background: active ? "var(--gold)" : "var(--surface-2)",
+                  border: `1px solid ${active ? "var(--gold)" : isToday ? "var(--line-2)" : "var(--line)"}`,
+                  color: active ? "var(--on-gold)" : "var(--chalk)",
+                  boxShadow: active ? "0 10px 30px -12px rgba(232,189,84,0.7)" : "none",
+                  transition: "transform 0.14s var(--ease), border-color 0.2s, background 0.2s",
+                }}>
+                <span className="mono" style={{
+                  fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase",
+                  color: active ? "var(--on-gold)" : isToday ? "var(--volt)" : "var(--muted)", fontWeight: 700,
+                }}>
+                  {isToday ? "Today" : f.dow}
+                </span>
+                <span className="num" style={{ fontSize: 18, color: active ? "var(--on-gold)" : "var(--chalk)" }}>{f.date}</span>
+                <span className="mono" style={{ fontSize: 9, opacity: active ? 0.7 : 0.55 }}>{count} {count === 1 ? "match" : "matches"}</span>
+              </button>
+            );
+          })}
+          {days.length === 0 && !err && (
+            <span className="mono muted" style={{ fontSize: 12, padding: "16px 4px" }}>Loading schedule…</span>
+          )}
+        </div>
       </div>
 
-      {err && <div className="card">Oracle API unreachable, or the live match feed is off. Start the backend to load matches.</div>}
-      {!err && loading && <div className="card muted">Loading matches...</div>}
-      {!err && !loading && matches.length === 0 && <div className="card muted">No World Cup matches on this day.</div>}
+      {/* ================= FIXTURE LIST HEADER ================= */}
+      {sel && (
+        <div className="between" style={{ marginTop: 30, marginBottom: 14 }}>
+          <div className="row" style={{ gap: 10 }}>
+            <span className="num" style={{ fontSize: 22, color: "var(--chalk)" }}>{sel.date}</span>
+            <span className="mono muted" style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+              {day === today ? "Today's fixtures" : "Fixtures"}
+            </span>
+          </div>
+          {!err && !loading && matches.length > 0 && (
+            <span className="pill">{matches.length} {matches.length === 1 ? "match" : "matches"}</span>
+          )}
+        </div>
+      )}
 
-      <div style={{ display: "grid", gap: 10 }}>
-        {matches.map((m) => <MatchRow key={m.fixtureId} m={m} onClick={() => nav(`/match/${m.fixtureId}`)} />)}
-      </div>
+      {/* ================= STATES ================= */}
+      {err && (
+        <div className="empty-state" style={{ borderColor: "rgba(255,90,90,0.4)" }}>
+          <div className="num" style={{ fontSize: 40, color: "var(--danger)" }}>—</div>
+          <div style={{ fontWeight: 800, fontSize: 17, color: "var(--chalk)", marginTop: 10 }}>Feed unreachable</div>
+          <p className="muted" style={{ fontSize: 14, marginTop: 8, maxWidth: "42ch", marginInline: "auto" }}>
+            The oracle API is offline or the live match feed is off. Start the backend to load World Cup fixtures.
+          </p>
+        </div>
+      )}
+
+      {!err && loading && (
+        <div style={{ display: "grid", gap: 10 }}>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="panel rise" style={{ animationDelay: `${i * 0.06}s`, height: 74, display: "grid", placeItems: "center" }}>
+              <span className="mono muted" style={{ fontSize: 12, letterSpacing: "0.1em" }}>Loading…</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!err && !loading && matches.length === 0 && (
+        <div className="empty-state">
+          <div className="num" style={{ fontSize: 40, color: "var(--faint)" }}>0</div>
+          <div style={{ fontWeight: 800, fontSize: 17, color: "var(--chalk)", marginTop: 10 }}>No fixtures scheduled</div>
+          <p className="muted" style={{ fontSize: 14, marginTop: 8 }}>There are no World Cup matches on this day. Pick another date above.</p>
+        </div>
+      )}
+
+      {/* ================= FIXTURES ================= */}
+      {!err && !loading && matches.length > 0 && (
+        <div style={{ display: "grid", gap: 10 }}>
+          {matches.map((m, i) => (
+            <div key={m.fixtureId} className="rise" style={{ animationDelay: `${Math.min(i, 8) * 0.04}s` }}>
+              <MatchRow m={m} onClick={() => nav(`/match/${m.fixtureId}`)} />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 function MatchRow({ m, onClick }: { m: MatchSummary; onClick: () => void }) {
   const time = new Date(m.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const live = m.status === "live" || m.status === "halftime";
   return (
-    <button onClick={onClick} className="card hover-lift"
-      style={{ display: "grid", gridTemplateColumns: "72px 1fr auto 1fr", alignItems: "center", gap: 12, textAlign: "left", padding: "12px 16px" }}>
-      <StatusBadge m={m} time={time} />
+    <button onClick={onClick} className="panel panel-flush hover-lift"
+      style={{
+        width: "100%", display: "grid", gridTemplateColumns: "minmax(0,1fr) 128px minmax(0,1fr)",
+        alignItems: "center", gap: 14, textAlign: "left", padding: "16px 20px",
+        borderLeft: `3px solid ${live ? "var(--live)" : "var(--line)"}`,
+      }}>
       <TeamCell team={m.home} align="right" />
-      <ScoreCell m={m} />
+      <CenterCell m={m} time={time} />
       <TeamCell team={m.away} align="left" />
     </button>
   );
 }
 
+function CenterCell({ m, time }: { m: MatchSummary; time: string }) {
+  const live = m.status === "live";
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, minWidth: 0 }}>
+      <StatusBadge m={m} time={time} />
+      {m.score ? (
+        <span className="num" style={{ fontSize: 30, color: live ? "var(--live)" : "var(--chalk)", whiteSpace: "nowrap" }}>
+          {m.score.home}<span className="faint" style={{ margin: "0 4px" }}>–</span>{m.score.away}
+        </span>
+      ) : (
+        <span className="num muted" style={{ fontSize: 22 }}>vs</span>
+      )}
+    </div>
+  );
+}
+
 function StatusBadge({ m, time }: { m: MatchSummary; time: string }) {
   if (m.status === "halftime") {
-    return <span style={{ fontWeight: 800, fontSize: 13, color: "var(--danger)" }}>HT</span>;
+    return (
+      <span className="pill pill-live" style={{ padding: "2px 9px", fontSize: 10 }}>HT</span>
+    );
   }
   if (m.status === "live") {
     return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 800, color: "var(--danger)" }}>
+      <span className="live" style={{ fontSize: 11 }}>
         <span className="live-dot" />
         {m.minute !== null ? `${m.minute}'` : "LIVE"}
       </span>
     );
   }
-  if (m.status === "finished") return <span className="muted" style={{ fontWeight: 700, fontSize: 13 }}>FT</span>;
-  return <span className="muted" style={{ fontSize: 13 }}>{time}</span>;
-}
-
-function TeamCell({ team, align }: { team: MatchSummary["home"]; align: "left" | "right" }) {
+  if (m.status === "finished") {
+    return <span className="pill" style={{ padding: "2px 9px", fontSize: 10 }}>FT</span>;
+  }
   return (
-    <span style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: align === "right" ? "flex-end" : "flex-start" }}>
-      {align === "right" && <b style={{ fontSize: 15 }}>{team.name}</b>}
-      <span style={{ fontSize: 20 }}>{team.flag ?? ""}</span>
-      {align === "left" && <b style={{ fontSize: 15 }}>{team.name}</b>}
-    </span>
+    <span className="mono muted" style={{ fontSize: 11, letterSpacing: "0.08em" }}>{time}</span>
   );
 }
 
-function ScoreCell({ m }: { m: MatchSummary }) {
-  const live = m.status === "live";
-  if (m.score) {
-    return (
-      <span style={{ fontWeight: 900, fontSize: 20, minWidth: 56, textAlign: "center", color: live ? "var(--danger)" : undefined }}>
-        {m.score.home}-{m.score.away}
+function TeamCell({ team, align }: { team: MatchSummary["home"]; align: "left" | "right" }) {
+  const right = align === "right";
+  return (
+    <span style={{
+      display: "flex", alignItems: "center", gap: 11, minWidth: 0,
+      justifyContent: right ? "flex-end" : "flex-start",
+      flexDirection: right ? "row" : "row-reverse",
+    }}>
+      <b style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: right ? "right" : "left" }}>
+        {team.name}
+      </b>
+      <span style={{
+        fontSize: 24, lineHeight: 1, flexShrink: 0, width: 34, textAlign: "center",
+        display: "inline-grid", placeItems: "center", height: 34,
+        background: "var(--surface-3)", border: "1px solid var(--line)", borderRadius: 8,
+      }}>
+        {team.flag ?? "🏳️"}
       </span>
-    );
-  }
-  return <span className="muted" style={{ minWidth: 56, textAlign: "center" }}>vs</span>;
+    </span>
+  );
 }

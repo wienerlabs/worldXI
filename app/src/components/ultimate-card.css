@@ -1,0 +1,152 @@
+/* ============================================================================
+   UltimateCard — FUT-style player card ported from card_1.html.
+   All classes/vars are prefixed `uc-` and scoped to `.uc-wrapper` so nothing
+   collides with the global theme (which also uses .card/.stat/.name/--text…).
+   ============================================================================ */
+
+@property --uc-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+
+/* ---- per-tier design tokens ---- */
+.uc-wrapper[data-tier="bronze"]  { --uc-c1:#e8b98a; --uc-c2:#4a2f18; --uc-c3:#a06e4a; --uc-text:#f3cdae; --uc-bg1:#3a251a; --uc-bg2:#180d07; --uc-glow:200,150,105; --uc-outline:#f0c9a3; }
+.uc-wrapper[data-tier="silver"]  { --uc-c1:#ffffff; --uc-c2:#4b525c; --uc-c3:#aeb6bf; --uc-text:#e8edf2; --uc-bg1:#2b3036; --uc-bg2:#0f1114; --uc-glow:210,220,230; --uc-outline:#eef3f8; }
+.uc-wrapper[data-tier="gold"]    { --uc-c1:#fff2b0; --uc-c2:#5c4406; --uc-c3:#d4af37; --uc-text:#ffe89a; --uc-bg1:#2c2205; --uc-bg2:#0d0a01; --uc-glow:255,214,90;  --uc-outline:#ffe38a; }
+.uc-wrapper[data-tier="special"] { --uc-c1:#ffffff; --uc-c2:#3a1d5c; --uc-c3:#7928ca; --uc-text:#eafcff; --uc-bg1:#1a0e2e; --uc-bg2:#05020a; --uc-glow:120,220,255; --uc-outline:#bff3ff; }
+
+/* card silhouette — special tier gets a more faceted cut */
+.uc-wrapper[data-tier]            { --uc-shape: polygon(15% 0, 85% 0, 100% 12%, 100% 88%, 50% 100%, 0 88%, 0 12%); }
+.uc-wrapper[data-tier="special"]  { --uc-shape: polygon(12% 0, 88% 0, 100% 8%, 100% 85%, 88% 92%, 50% 100%, 12% 92%, 0 85%, 0 8%); }
+
+/* ---- 3D stage ---- */
+.uc-wrapper { position: relative; width: 280px; height: 400px; perspective: 900px; cursor: pointer; outline: none; font-family: 'Oswald', sans-serif; color: #fff; line-height: 1.1; }
+.uc-3d {
+  position: relative; width: 100%; height: 100%;
+  transform: rotateX(var(--uc-rx,0deg)) rotateY(var(--uc-ry,0deg)) scale3d(var(--uc-s,1), var(--uc-s,1), 1);
+  transition: transform .12s ease-out;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.uc-wrapper:hover .uc-3d { --uc-s: 1.03; }
+
+/* ---- rotating conic frame ---- */
+.uc-frame {
+  position: absolute; inset: 0; padding: 3px;
+  clip-path: var(--uc-shape);
+  background: conic-gradient(from var(--uc-angle),
+    var(--uc-c2) 0%, var(--uc-c1) 14%, var(--uc-c3) 28%, var(--uc-c2) 50%,
+    var(--uc-c1) 64%, var(--uc-c3) 78%, var(--uc-c2) 100%);
+  animation: uc-spin var(--uc-spin, 7s) linear infinite;
+  filter: drop-shadow(0 0 10px rgba(var(--uc-glow), 0));
+  transition: filter .35s ease;
+}
+.uc-wrapper[data-tier="special"] .uc-frame {
+  background: conic-gradient(from var(--uc-angle),
+    #ff2d95, #ff8a00, #ffe600, #2dd4bf, #3b82f6, #a855f7, #ff2d95);
+}
+@keyframes uc-spin { to { --uc-angle: 360deg; } }
+.uc-wrapper:hover  .uc-frame { --uc-spin: 4s;   filter: drop-shadow(0 0 20px rgba(var(--uc-glow), .55)); }
+
+.uc-face {
+  position: relative; width: 100%; height: 100%;
+  clip-path: var(--uc-shape); overflow: hidden;
+  background: linear-gradient(180deg, var(--uc-bg1), var(--uc-bg2));
+}
+.uc-face::before {
+  content: ''; position: absolute; inset: 0;
+  background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0 2px, transparent 2px 8px);
+}
+
+/* ---- player photo: real (rectangular, with background) headshots are cropped to
+   COVER the top of the card, clipped to the silhouette, and faded into the face.
+   (The FUT "poke above the frame" only works with transparent cut-outs, which the
+   ESPN/Wikidata photos are not.) ---- */
+.uc-photo {
+  position: absolute; inset: 3px; z-index: 10;
+  clip-path: var(--uc-shape); overflow: hidden;
+  transform: translateZ(18px);
+  pointer-events: none;
+}
+.uc-photo img {
+  position: absolute; top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 100%; height: 84%;
+  object-fit: cover; object-position: top center;
+  -webkit-mask-image: linear-gradient(to bottom, #000 50%, rgba(0,0,0,.45) 78%, transparent 96%);
+  mask-image: linear-gradient(to bottom, #000 50%, rgba(0,0,0,.45) 78%, transparent 96%);
+}
+
+/* ---- shine: glare + ambient sweep ---- */
+.uc-shine { position: absolute; inset: 0; z-index: 18; clip-path: var(--uc-shape); overflow: hidden; pointer-events: none; transform: translateZ(34px); }
+.uc-shine-glare {
+  position: absolute; inset: 0; opacity: 0; transition: opacity .3s ease;
+  background: radial-gradient(circle at var(--uc-px,50%) var(--uc-py,50%), rgba(255,255,255,.35), rgba(255,255,255,.06) 35%, transparent 60%);
+  mix-blend-mode: overlay;
+}
+.uc-wrapper:hover .uc-shine-glare { opacity: 1; }
+.uc-shine-sweep {
+  position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+  background: linear-gradient(105deg, transparent, rgba(255,255,255,.14), transparent);
+  transform: skewX(-18deg);
+  animation: uc-sweep 5.5s ease-in-out infinite;
+}
+@keyframes uc-sweep { 0%,100% { left: -60%; } 55% { left: 120%; } }
+
+/* ---- holographic foil (special tier) ---- */
+.uc-foil { position: absolute; inset: 0; z-index: 20; clip-path: var(--uc-shape); overflow: hidden; pointer-events: none; transform: translateZ(36px); }
+.uc-foil-sheen {
+  position: absolute; inset: 0;
+  background: linear-gradient(115deg, transparent 28%, rgba(255,255,255,.18) 42%, rgba(255,0,150,.22) 50%, rgba(0,220,255,.22) 60%, transparent 74%);
+  background-size: 220% 220%;
+  background-position: var(--uc-px,50%) var(--uc-py,50%);
+  mix-blend-mode: color-dodge;
+  opacity: .55; transition: opacity .3s ease;
+}
+.uc-wrapper:hover .uc-foil-sheen { opacity: .9; }
+.uc-foil-sparkle {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,.9) 0.5px, transparent 1.3px);
+  background-size: 7px 7px;
+  background-position: var(--uc-px,50%) var(--uc-py,50%);
+  mix-blend-mode: overlay; opacity: .22;
+}
+
+/* ---- edge comet ---- */
+.uc-edge { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 40; pointer-events: none; overflow: visible; transform: translateZ(60px); }
+.uc-edge path { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.uc-edge-outline { stroke: var(--uc-outline); opacity: .22; stroke-width: 1.5; transition: opacity .3s; }
+.uc-edge-comet {
+  stroke: #fff; stroke-width: 2;
+  stroke-dasharray: 9 91; stroke-dashoffset: 0;
+  filter: drop-shadow(0 0 3px var(--uc-outline)) drop-shadow(0 0 7px var(--uc-outline));
+  animation: uc-run var(--uc-run, 4.5s) linear infinite;
+}
+.uc-edge-comet-2 { opacity: 0; animation-delay: calc(var(--uc-run, 4.5s) / -2); }
+@keyframes uc-run { to { stroke-dashoffset: -100; } }
+.uc-wrapper:hover  .uc-edge-comet { --uc-run: 3s;  stroke-width: 2.5; }
+.uc-wrapper:focus-visible .uc-edge-outline { opacity: .6; }
+
+/* ---- top-left info: position + flag (rating/stats removed by request).
+   Insets clear of the diagonal top-left corner cut, and accounts for the
+   translateZ magnification, so nothing spills outside the card silhouette. ---- */
+.uc-top-info { position: absolute; top: 44px; left: 34px; z-index: 30; display: flex; flex-direction: column; align-items: flex-start; transform: translateZ(55px); }
+.uc-pos    { font-size: 1.35rem; line-height: 1; font-weight: 600; color: var(--uc-text); letter-spacing: 1px; text-shadow: 0 2px 6px rgba(0,0,0,.65); }
+.uc-info-div { width: 28px; height: 1px; background: rgba(255,255,255,.32); margin: 7px 0; }
+.uc-flag  { width: 30px; height: 20px; object-fit: cover; border-radius: 3px; box-shadow: 0 1px 4px rgba(0,0,0,.55); }
+.uc-flag-emoji { font-size: 22px; line-height: 20px; filter: drop-shadow(0 1px 3px rgba(0,0,0,.6)); }
+
+/* ---- name plate ---- */
+.uc-name-stats { position: absolute; left: 0; bottom: 0; width: 100%; z-index: 30; padding-bottom: 52px; transform: translateZ(45px); }
+.uc-name {
+  text-align: center; font-size: 1.5rem; font-weight: 700; letter-spacing: 2.5px; line-height: 1.05;
+  text-transform: uppercase; color: var(--uc-text);
+  padding: 6px 8px;
+  border-top: 1px solid rgba(255,255,255,.14);
+  border-bottom: 1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.42);
+  text-shadow: 0 1px 3px rgba(0,0,0,.65);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .uc-frame, .uc-edge-comet, .uc-shine-sweep { animation: none !important; }
+  .uc-3d { transition: none; }
+}

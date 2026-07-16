@@ -12,10 +12,18 @@ interface SquadCtx {
   captainId: number | null;
   spent: number;
   remaining: number;
+  /** Effective budget in SOL (default BUDGET_SOL; admins may override on Build). */
+  budget: number;
+  /** Whether the budget has been raised above the default (admin override active). */
+  budgetOverridden: boolean;
   add: (p: Player) => string | null;
   remove: (id: number) => void;
   setFormation: (f: string) => void;
   setCaptain: (id: number) => void;
+  /** Set a custom budget (admin control). Values <= 0 reset to the default. */
+  setBudget: (sol: number) => void;
+  /** Restore the default 25 SOL budget. */
+  resetBudget: () => void;
   /** Swaps a bench player with a starter in the same position (moves into the starting 11). */
   swapToStarter: (benchId: number, starterOutId: number) => string | null;
   isStarter: (id: number) => boolean;
@@ -30,6 +38,8 @@ interface Persisted {
   formation: string;
   captainId: number | null;
   starterIds: number[];
+  /** Optional admin budget override (SOL). Absent/<=0 means the default budget. */
+  budget?: number;
 }
 
 const POS_LIMITS: Record<Position, number> = { GK: 2, DEF: 5, MID: 5, FWD: 3 };
@@ -77,6 +87,9 @@ export function SquadProvider({ children }: { children: ReactNode }) {
 
   const spent = useMemo(() => state.picks.reduce((s, p) => s + p.priceSol, 0), [state.picks]);
 
+  // Effective budget: the admin override when present & positive, else the default.
+  const budget = state.budget && state.budget > 0 ? state.budget : BUDGET_SOL;
+
   const value = useMemo<SquadCtx>(() => {
     const posCount = (pos: string) => state.picks.filter((p) => p.position === pos).length;
     const countryCount = (iso: string) => state.picks.filter((p) => p.nationalTeam === iso).length;
@@ -88,7 +101,7 @@ export function SquadProvider({ children }: { children: ReactNode }) {
       if (state.picks.some((x) => x.playerId === p.playerId)) return "Already in your squad.";
       if (posCount(p.position) >= POS_LIMITS[p.position]) return `${p.position} slots are full.`;
       if (countryCount(p.nationalTeam) >= MAX_PER_COUNTRY) return "Max 3 players per country.";
-      if (spent + p.priceSol > BUDGET_SOL) return "Not enough budget.";
+      if (spent + p.priceSol > budget) return "Not enough budget.";
       setState((s) => {
         const n = need(s.formation);
         const startersInPos = s.starterIds.filter((id) => posById.get(id) === p.position).length;
@@ -133,7 +146,13 @@ export function SquadProvider({ children }: { children: ReactNode }) {
       return null;
     };
 
-    const clear = () => setState({ picks: [], formation: "F433", captainId: null, starterIds: [] });
+    // Clearing the squad keeps any admin budget override in place.
+    const clear = () => setState((s) => ({ picks: [], formation: "F433", captainId: null, starterIds: [], budget: s.budget }));
+
+    const setBudget = (sol: number) =>
+      setState((s) => ({ ...s, budget: Number.isFinite(sol) && sol > 0 ? sol : undefined }));
+
+    const resetBudget = () => setState((s) => ({ ...s, budget: undefined }));
 
     const starters = state.starterIds
       .map((id) => state.picks.find((p) => p.playerId === id))
@@ -148,16 +167,20 @@ export function SquadProvider({ children }: { children: ReactNode }) {
       formation: state.formation,
       captainId: state.captainId,
       spent,
-      remaining: BUDGET_SOL - spent,
+      remaining: budget - spent,
+      budget,
+      budgetOverridden: budget !== BUDGET_SOL,
       add,
       remove,
       setFormation,
       setCaptain,
+      setBudget,
+      resetBudget,
       swapToStarter,
       isStarter: (id: number) => starterSet.has(id),
       clear,
     };
-  }, [state, spent]);
+  }, [state, spent, budget]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
