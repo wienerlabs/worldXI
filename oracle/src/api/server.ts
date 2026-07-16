@@ -111,6 +111,65 @@ export function startApiServer(
     res.json(rows);
   });
 
+  // Per-player tournament stats (matches, points, MVP, best single match) - real,
+  // derived from state history. Powers player cards and the My Cards vault.
+  app.get("/players/stats", (_req: Request, res: Response) => {
+    const rows = [...state.universe.keys()].map((playerId) => {
+      const history = state.playerHistory(playerId);
+      const bestScore = history.reduce((m, h) => Math.max(m, h.result.rawPoints), 0);
+      return {
+        playerId,
+        totalPoints: state.playerLivePoints(playerId),
+        matchesPlayed: history.length,
+        mvpCount: history.filter((h) => h.result.wasMvp).length,
+        bestScore,
+      };
+    });
+    res.json(rows);
+  });
+
+  // Team leaderboard: each national team's total = sum of its players' tournament points,
+  // plus a matchday-by-matchday breakdown (how many points the team scored in each match).
+  app.get("/leaderboard/teams", (_req: Request, res: Response) => {
+    const byTeam = new Map<string, { total: number; count: number }>();
+    for (const [playerId, p] of state.universe) {
+      const agg = byTeam.get(p.nationalTeam) ?? { total: 0, count: 0 };
+      agg.total += state.playerLivePoints(playerId);
+      agg.count += 1;
+      byTeam.set(p.nationalTeam, agg);
+    }
+    // team -> (matchday -> summed points of that team's players in that matchday)
+    const teamMd = new Map<string, Map<number, number>>();
+    for (const [md, results] of state.matchdayResults) {
+      for (const [playerId, r] of results) {
+        const p = state.universe.get(playerId);
+        if (!p) continue;
+        const m = teamMd.get(p.nationalTeam) ?? new Map<number, number>();
+        m.set(md, (m.get(md) ?? 0) + r.rawPoints);
+        teamMd.set(p.nationalTeam, m);
+      }
+    }
+    const rows = [...byTeam.entries()]
+      .map(([iso, { total, count }]) => {
+        const country = state.countries.find((c) => c.isoCode === iso);
+        const md = teamMd.get(iso) ?? new Map<number, number>();
+        const breakdown = [...md.entries()]
+          .map(([matchday, points]) => ({ matchday, points }))
+          .sort((a, b) => a.matchday - b.matchday);
+        return {
+          iso,
+          name: country?.countryNameEn ?? iso,
+          flag: country?.flagEmoji ?? null,
+          totalPoints: total,
+          playerCount: count,
+          breakdown,
+        };
+      })
+      .sort((a, b) => b.totalPoints - a.totalPoints || a.name.localeCompare(b.name))
+      .map((r, i) => ({ ...r, rank: i + 1 }));
+    res.json(rows);
+  });
+
   app.get("/live/matchday", (_req: Request, res: Response) => {
     const md = state.matchdayResults.get(state.activeMatchday);
     const rows = md
