@@ -10,7 +10,7 @@
     {
       "name": "commit_score",
       "docs": [
-        "Oracle: writes/updates a player's matchday raw points live."
+        "Oracle: writes/updates a player's raw matchday points live."
       ],
       "discriminator": [
         6,
@@ -116,9 +116,122 @@
       ]
     },
     {
+      "name": "create_friend_league",
+      "docs": [
+        "Creates a private friend league with an invite code; the creator is its first member."
+      ],
+      "discriminator": [
+        77,
+        207,
+        73,
+        186,
+        47,
+        144,
+        51,
+        41
+      ],
+      "accounts": [
+        {
+          "name": "tournament"
+        },
+        {
+          "name": "league",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  114,
+                  105,
+                  101,
+                  110,
+                  100,
+                  95,
+                  108,
+                  101,
+                  97,
+                  103,
+                  117,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "tournament"
+              },
+              {
+                "kind": "arg",
+                "path": "code"
+              }
+            ]
+          }
+        },
+        {
+          "name": "membership",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  97,
+                  103,
+                  117,
+                  101,
+                  95,
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "league"
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "code",
+          "type": {
+            "array": [
+              "u8",
+              6
+            ]
+          }
+        },
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ]
+    },
+    {
       "name": "create_player_card",
       "docs": [
-        "Creates the user's PlayerCard (cNFT performance mirror) for a player."
+        "Creates the user's PlayerCard (a cNFT performance mirror) for a player."
       ],
       "discriminator": [
         17,
@@ -281,7 +394,7 @@
     {
       "name": "create_sponsor_league",
       "docs": [
-        "The sponsor creates a free prize league by depositing the prize into the PDA."
+        "The sponsor creates a free prize league by depositing the prize into a PDA."
       ],
       "discriminator": [
         139,
@@ -348,7 +461,7 @@
     {
       "name": "init_tournament",
       "docs": [
-        "Sets up the tournament, the oracle, and the squad budget."
+        "Sets up the tournament, the oracle and the squad budget."
       ],
       "discriminator": [
         219,
@@ -414,9 +527,75 @@
       ]
     },
     {
+      "name": "join_friend_league",
+      "docs": [
+        "Joins an existing friend league using its invite code (client derives the league PDA)."
+      ],
+      "discriminator": [
+        7,
+        32,
+        61,
+        64,
+        197,
+        22,
+        242,
+        1
+      ],
+      "accounts": [
+        {
+          "name": "league",
+          "writable": true
+        },
+        {
+          "name": "membership",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  97,
+                  103,
+                  117,
+                  101,
+                  95,
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "league"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "register_player",
       "docs": [
-        "Registers a player with tier price and rarity (authority only)."
+        "Registers a player with their tier price and rarity (authority only)."
       ],
       "discriminator": [
         242,
@@ -550,7 +729,7 @@
     {
       "name": "set_lineup",
       "docs": [
-        "Changes the lineup/starting 11/captain before the matchday."
+        "Changes the formation / starting eleven / captain before the matchday."
       ],
       "discriminator": [
         247,
@@ -608,7 +787,7 @@
     {
       "name": "set_matchday",
       "docs": [
-        "Oracle: aktif matchday'i ve kilit durumunu ayarlar."
+        "Oracle: sets the active matchday and the lock state."
       ],
       "discriminator": [
         9,
@@ -704,7 +883,7 @@
         {
           "name": "winner",
           "docs": [
-            "The winning wallet; the prize is sent here."
+            "Winner wallet; the prize is sent here."
           ],
           "writable": true
         },
@@ -767,11 +946,49 @@
           }
         },
         {
+          "name": "snapshot",
+          "docs": [
+            "Snapshot of the lineup used for this matchday (created here, once per matchday)."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  110,
+                  97,
+                  112,
+                  115,
+                  104,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "squad.owner",
+                "account": "Squad"
+              },
+              {
+                "kind": "arg",
+                "path": "matchday"
+              }
+            ]
+          }
+        },
+        {
           "name": "crank",
           "docs": [
             "Fee payer; permissionless (whoever pays settles)."
           ],
+          "writable": true,
           "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -873,6 +1090,32 @@
   ],
   "accounts": [
     {
+      "name": "FriendLeague",
+      "discriminator": [
+        12,
+        3,
+        122,
+        60,
+        213,
+        3,
+        19,
+        145
+      ]
+    },
+    {
+      "name": "LeagueMembership",
+      "discriminator": [
+        146,
+        245,
+        216,
+        155,
+        122,
+        84,
+        133,
+        194
+      ]
+    },
+    {
       "name": "Player",
       "discriminator": [
         205,
@@ -938,6 +1181,19 @@
       ]
     },
     {
+      "name": "SquadSnapshot",
+      "discriminator": [
+        133,
+        71,
+        210,
+        182,
+        51,
+        177,
+        101,
+        190
+      ]
+    },
+    {
       "name": "Tournament",
       "discriminator": [
         175,
@@ -983,22 +1239,22 @@
     {
       "code": 6003,
       "name": "CountryLimitExceeded",
-      "msg": "Exceeded the allowed number of players from the same national team (maximum 3)."
+      "msg": "The number of players allowed from the same national team was exceeded (maximum 3)."
     },
     {
       "code": 6004,
       "name": "InvalidFormation",
-      "msg": "The starting 11 does not fully satisfy the position distribution of the selected formation."
+      "msg": "The starting eleven does not fully match the position distribution of the selected formation."
     },
     {
       "code": 6005,
       "name": "CaptainNotStarter",
-      "msg": "The selected captain is not in the starting 11."
+      "msg": "The selected captain is not in the starting eleven."
     },
     {
       "code": 6006,
       "name": "TournamentLocked",
-      "msg": "The tournament is currently locked (a matchday is in progress)."
+      "msg": "The tournament is currently locked (matchday in progress)."
     },
     {
       "code": 6007,
@@ -1013,37 +1269,37 @@
     {
       "code": 6009,
       "name": "NicknameTooLong",
-      "msg": "Nickname exceeds the 24-character limit."
+      "msg": "The nickname exceeds the 24 character limit."
     },
     {
       "code": 6010,
       "name": "Overflow",
-      "msg": "Arithmetic overflow occurred."
+      "msg": "An arithmetic overflow occurred."
     },
     {
       "code": 6011,
       "name": "DuplicatePlayer",
-      "msg": "There is a duplicate player in the squad; each player can only be selected once."
+      "msg": "The squad contains a duplicate player; each player can only be selected once."
     },
     {
       "code": 6012,
       "name": "AccountCountMismatch",
-      "msg": "The number of provided accounts does not match the expected count."
+      "msg": "The number of accounts provided does not match the expected count."
     },
     {
       "code": 6013,
       "name": "AccountMismatch",
-      "msg": "The provided account does not match the expected PDA."
+      "msg": "A provided account does not match the expected PDA."
     },
     {
       "code": 6014,
       "name": "StarterNotInSquad",
-      "msg": "A starter is not in the selected pool of 15 players."
+      "msg": "A starter is not present in the selected pool of 15 players."
     },
     {
       "code": 6015,
       "name": "InvalidArgument",
-      "msg": "Invalid input value."
+      "msg": "The input value is invalid."
     },
     {
       "code": 6016,
@@ -1060,7 +1316,7 @@
     {
       "name": "Formation",
       "docs": [
-        "Formation; each contains a fixed 1 goalkeeper + a varying DEF/MID/FWD distribution."
+        "Formation; each has a fixed 1 goalkeeper plus a varying DEF/MID/FWD distribution."
       ],
       "type": {
         "kind": "enum",
@@ -1090,6 +1346,84 @@
       }
     },
     {
+      "name": "FriendLeague",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tournament",
+            "docs": [
+              "The tournament it belongs to."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "creator",
+            "docs": [
+              "The wallet that created the league (also its first member)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "docs": [
+              "Human-readable league name."
+            ],
+            "type": "string"
+          },
+          {
+            "name": "code",
+            "docs": [
+              "Invite code shared with friends; also used as a PDA seed."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                6
+              ]
+            }
+          },
+          {
+            "name": "member_count",
+            "docs": [
+              "Number of members who have joined."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LeagueMembership",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "league",
+            "docs": [
+              "The friend league this membership belongs to."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "docs": [
+              "The member wallet."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "Player",
       "type": {
         "kind": "struct",
@@ -1104,7 +1438,7 @@
           {
             "name": "player_id",
             "docs": [
-              "Unique player id within the tournament (comes from the data set)."
+              "Unique player identifier within the tournament (comes from the data set)."
             ],
             "type": "u32"
           },
@@ -1130,7 +1464,7 @@
           {
             "name": "position",
             "docs": [
-              "Saha pozisyonu."
+              "Field position."
             ],
             "type": {
               "defined": {
@@ -1152,15 +1486,15 @@
           {
             "name": "price_lamports",
             "docs": [
-              "The starting price assigned by tier (lamports)."
+              "Starting price assigned by tier (lamports)."
             ],
             "type": "u64"
           },
           {
             "name": "total_points",
             "docs": [
-              "The live total fantasy points the player accumulated across the tournament.",
-              "Updated live each time commit_score is called."
+              "The player's live total fantasy points accumulated over the tournament.",
+              "Updated live every time commit_score is called."
             ],
             "type": "i64"
           },
@@ -1186,21 +1520,21 @@
           {
             "name": "owner",
             "docs": [
-              "The card owner wallet."
+              "The wallet that owns the card."
             ],
             "type": "pubkey"
           },
           {
             "name": "player_id",
             "docs": [
-              "Temsil edilen oyuncunun player_id'si."
+              "The player_id of the represented player."
             ],
             "type": "u32"
           },
           {
             "name": "rarity",
             "docs": [
-              "Card rarity (for the point bonus during settle)."
+              "Card rarity (for the point bonus applied during settle)."
             ],
             "type": {
               "defined": {
@@ -1211,35 +1545,35 @@
           {
             "name": "matches_played",
             "docs": [
-              "Number of matches played counted for the owner through this card."
+              "Number of matches played, counted for the owner through this card."
             ],
             "type": "u32"
           },
           {
             "name": "total_points",
             "docs": [
-              "Total fantasy points the card has accumulated."
+              "Total fantasy points accumulated by the card."
             ],
             "type": "i64"
           },
           {
             "name": "mvp_count",
             "docs": [
-              "The card's MVP (man of the match) count."
+              "The card's MVP (player of the match) count."
             ],
             "type": "u32"
           },
           {
             "name": "best_single_score",
             "docs": [
-              "The highest score recorded in a single matchday."
+              "Highest score recorded in a single matchday."
             ],
             "type": "i32"
           },
           {
             "name": "mint",
             "docs": [
-              "The associated cNFT mint address (Bubblegum asset id / mint)."
+              "Associated cNFT mint address (Bubblegum asset id / mint)."
             ],
             "type": "pubkey"
           },
@@ -1253,7 +1587,7 @@
     {
       "name": "Position",
       "docs": [
-        "Oyuncu saha pozisyonu."
+        "Player field position."
       ],
       "type": {
         "kind": "enum",
@@ -1315,21 +1649,21 @@
           {
             "name": "player_id",
             "docs": [
-              "Oyuncunun player_id'si."
+              "The player's player_id."
             ],
             "type": "u32"
           },
           {
             "name": "raw_points",
             "docs": [
-              "Raw fantasy points without the rarity/captain multiplier applied."
+              "Raw fantasy points, without the rarity/captain multiplier applied."
             ],
             "type": "i32"
           },
           {
             "name": "was_mvp",
             "docs": [
-              "Whether the player was selected MVP this matchday (for the card mvp_count counter)."
+              "Whether the player was chosen MVP on this matchday (for the card's mvp_count counter)."
             ],
             "type": "bool"
           },
@@ -1409,7 +1743,7 @@
           {
             "name": "owner",
             "docs": [
-              "The squad owner wallet."
+              "The wallet that owns the squad."
             ],
             "type": "pubkey"
           },
@@ -1428,7 +1762,7 @@
           {
             "name": "starters",
             "docs": [
-              "The player_ids of the 11 players on the pitch (a subset of players)."
+              "The player_ids of the 11 players on the field (a subset of players)."
             ],
             "type": {
               "array": [
@@ -1440,7 +1774,7 @@
           {
             "name": "formation",
             "docs": [
-              "Active lineup."
+              "The active formation."
             ],
             "type": {
               "defined": {
@@ -1472,7 +1806,70 @@
           {
             "name": "total_points",
             "docs": [
-              "Onchain finalized total squad points (accumulates via settle_squad_matchday)."
+              "The squad's onchain finalized total points (accumulated via settle_squad_matchday)."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SquadSnapshot",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "docs": [
+              "The manager wallet this snapshot belongs to."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "matchday",
+            "docs": [
+              "The matchday this snapshot captures."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "starters",
+            "docs": [
+              "The starting 11 that were in play for this matchday."
+            ],
+            "type": {
+              "array": [
+                "u32",
+                11
+              ]
+            }
+          },
+          {
+            "name": "captain",
+            "docs": [
+              "The captain for this matchday."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "formation",
+            "docs": [
+              "The formation used for this matchday."
+            ],
+            "type": {
+              "defined": {
+                "name": "Formation"
+              }
+            }
+          },
+          {
+            "name": "points",
+            "docs": [
+              "Points this lineup scored in this matchday (rarity bonus + captain applied)."
             ],
             "type": "i64"
           },
@@ -1491,7 +1888,7 @@
           {
             "name": "authority",
             "docs": [
-              "The authority managing the tournament (register_player, settle_sponsor_league, etc.)."
+              "The authority that manages the tournament (register_player, settle_sponsor_league, etc.)."
             ],
             "type": "pubkey"
           },
@@ -1512,21 +1909,21 @@
           {
             "name": "budget_lamports",
             "docs": [
-              "Squad building budget (virtual SOL in lamports; 10 SOL = 10_000_000_000)."
+              "Squad-building budget (virtual SOL in lamports; 10 SOL = 10_000_000_000)."
             ],
             "type": "u64"
           },
           {
             "name": "current_matchday",
             "docs": [
-              "Active matchday number."
+              "The active matchday number."
             ],
             "type": "u16"
           },
           {
             "name": "locked",
             "docs": [
-              "True while the matchday is in progress; locks lineup changes."
+              "True while a matchday is in progress; locks lineup changes."
             ],
             "type": "bool"
           },
@@ -1552,7 +1949,7 @@
           {
             "name": "owner",
             "docs": [
-              "The profile owner wallet (this is the identity; the nickname is not unique)."
+              "The wallet that owns the profile (this is the identity; the nickname is not unique)."
             ],
             "type": "pubkey"
           },
@@ -1566,7 +1963,7 @@
           {
             "name": "country_code",
             "docs": [
-              "Optional: the country the user supports/joined (ISO alpha-3)."
+              "Optional: the country the user supports/participates for (ISO alpha-3)."
             ],
             "type": {
               "option": {
@@ -1580,7 +1977,7 @@
           {
             "name": "total_points",
             "docs": [
-              "The user's onchain finalized total points across the tournament."
+              "The user's onchain finalized total points over the tournament."
             ],
             "type": "i64"
           },

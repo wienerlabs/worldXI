@@ -16,8 +16,10 @@ pub const ISO_LEN: usize = 3;
 pub const MAX_NICKNAME_LEN: usize = 24;
 /// Maximum length for a tournament name (stays within the 32-byte PDA seed limit).
 pub const MAX_TOURNAMENT_NAME_LEN: usize = 32;
-/// Maximum length for a sponsor league name.
+/// Maximum length for a sponsor or friend league name.
 pub const MAX_LEAGUE_NAME_LEN: usize = 32;
+/// Length of a friend-league invite code (shared with friends to join).
+pub const LEAGUE_CODE_LEN: usize = 6;
 /// Maximum length for a player name.
 pub const MAX_PLAYER_NAME_LEN: usize = 40;
 
@@ -27,8 +29,11 @@ pub const PLAYER_SEED: &[u8] = b"player";
 pub const SQUAD_SEED: &[u8] = b"squad";
 pub const SCORE_SEED: &[u8] = b"score";
 pub const LEAGUE_SEED: &[u8] = b"league";
+pub const FRIEND_LEAGUE_SEED: &[u8] = b"friend_league";
+pub const LEAGUE_MEMBER_SEED: &[u8] = b"league_member";
 pub const PROFILE_SEED: &[u8] = b"profile";
 pub const CARD_SEED: &[u8] = b"card";
+pub const SNAPSHOT_SEED: &[u8] = b"snapshot";
 
 /// Base for rarity bonus multipliers (10000 bps = 100%, no multiplier).
 pub const BPS_DENOMINATOR: i128 = 10_000;

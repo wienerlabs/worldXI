@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchLeagues, type SponsorLeagueRow } from "../lib/api";
+import { FriendLeaguesSection } from "../components/FriendLeaguesSection";
 
 const shortAddr = (a: string) => `${a.slice(0, 4)}…${a.slice(-4)}`;
 
@@ -92,6 +93,9 @@ export function Leagues() {
           </div>
         </div>
       </section>
+
+      {/* ================= FRIEND LEAGUES ================= */}
+      <FriendLeaguesSection />
 
       {/* ================= SPONSOR PRIZE LEAGUES ================= */}
       <section className="section">

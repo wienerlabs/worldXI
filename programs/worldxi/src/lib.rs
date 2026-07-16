@@ -13,7 +13,7 @@ pub mod instructions;
 pub mod state;
 pub mod utils;
 
-use constants::{SQUAD_SIZE, STARTERS_SIZE};
+use constants::{LEAGUE_CODE_LEN, SQUAD_SIZE, STARTERS_SIZE};
 use instructions::*;
 use state::{Formation, Position, Rarity};
 
@@ -131,5 +131,19 @@ pub mod worldxi {
     /// The authority enters the winner and the prize is sent from the PDA to the winner.
     pub fn settle_sponsor_league(ctx: Context<SettleSponsorLeague>) -> Result<()> {
         instructions::settle_sponsor_league::handler(ctx)
+    }
+
+    /// Creates a private friend league with an invite code; the creator is its first member.
+    pub fn create_friend_league(
+        ctx: Context<CreateFriendLeague>,
+        code: [u8; LEAGUE_CODE_LEN],
+        name: String,
+    ) -> Result<()> {
+        instructions::create_friend_league::handler(ctx, code, name)
+    }
+
+    /// Joins an existing friend league using its invite code (client derives the league PDA).
+    pub fn join_friend_league(ctx: Context<JoinFriendLeague>) -> Result<()> {
+        instructions::join_friend_league::handler(ctx)
     }
 }

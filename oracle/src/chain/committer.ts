@@ -15,6 +15,7 @@ import {
   playerPda,
   profilePda,
   scorePda,
+  snapshotPda,
   squadPda,
   tournamentPda,
   type ChainContext,
@@ -145,7 +146,9 @@ export class Committer {
         tournament: this.tournament,
         squad: squadPda(this.ctx.programId, this.tournament, owner),
         profile: profilePda(this.ctx.programId, owner),
+        snapshot: snapshotPda(this.ctx.programId, owner, matchday),
         crank: this.ctx.wallet.publicKey,
+        systemProgram: SystemProgram.programId,
       })
       .remainingAccounts(remaining)
       .rpc();

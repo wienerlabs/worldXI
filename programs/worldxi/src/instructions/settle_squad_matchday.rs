@@ -10,9 +10,11 @@
 //! Permissionless crank: any signer (fee payer) can call it; which accounts get
 //! processed is secured by PDA validation.
 
-use crate::constants::{BPS_DENOMINATOR, CAPTAIN_MULTIPLIER, CARD_SEED, SCORE_SEED, STARTERS_SIZE};
+use crate::constants::{
+    BPS_DENOMINATOR, CAPTAIN_MULTIPLIER, CARD_SEED, SCORE_SEED, SNAPSHOT_SEED, STARTERS_SIZE,
+};
 use crate::errors::WorldXiError;
-use crate::state::{PlayerCard, ScoreCommit, Squad, Tournament, UserProfile};
+use crate::state::{PlayerCard, ScoreCommit, Squad, SquadSnapshot, Tournament, UserProfile};
 use crate::utils::{load_checked_pda, store_account};
 use anchor_lang::prelude::*;
 
@@ -38,8 +40,21 @@ pub struct SettleSquadMatchday<'info> {
     )]
     pub profile: Account<'info, UserProfile>,
 
+    /// Snapshot of the lineup used for this matchday (created here, once per matchday).
+    #[account(
+        init,
+        payer = crank,
+        space = 8 + SquadSnapshot::INIT_SPACE,
+        seeds = [SNAPSHOT_SEED, squad.owner.as_ref(), &matchday.to_le_bytes()],
+        bump
+    )]
+    pub snapshot: Account<'info, SquadSnapshot>,
+
     /// Fee payer; permissionless (whoever pays settles).
+    #[account(mut)]
     pub crank: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
     // remaining_accounts: (ScoreCommit, PlayerCard) pairs for each effective starter
 }
 
@@ -54,6 +69,9 @@ pub fn handler(ctx: Context<SettleSquadMatchday>, matchday: u16) -> Result<()> {
     let squad_owner = ctx.accounts.squad.owner;
     let captain = ctx.accounts.squad.captain;
     let squad_players = ctx.accounts.squad.players;
+    // Capture the lineup now (before the mutable borrow below) for the matchday snapshot.
+    let squad_starters = ctx.accounts.squad.starters;
+    let squad_formation = ctx.accounts.squad.formation.clone();
 
     let accs = ctx.remaining_accounts;
     // Empty-settle guard (griefing): at least 1 player (2 accounts) must be processed.
@@ -186,6 +204,17 @@ pub fn handler(ctx: Context<SettleSquadMatchday>, matchday: u16) -> Result<()> {
         .total_points
         .checked_add(total_i64)
         .ok_or(WorldXiError::Overflow)?;
+
+    // Preserve this matchday's lineup + points so it stays viewable later, even after the
+    // manager changes their active lineup for the next matchday.
+    let snapshot = &mut ctx.accounts.snapshot;
+    snapshot.owner = squad_owner;
+    snapshot.matchday = matchday;
+    snapshot.starters = squad_starters;
+    snapshot.captain = captain;
+    snapshot.formation = squad_formation;
+    snapshot.points = total_i64;
+    snapshot.bump = ctx.bumps.snapshot;
 
     msg!(
         "settle | md={} | owner={} | matchday_total={} | squad_total={}",

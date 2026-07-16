@@ -21,6 +21,7 @@ import type { Rarity } from "../domain.js";
 import type { TxlineClient } from "../txline/client.js";
 import { playerNftMetadata } from "./nftMetadata.js";
 import { createMatchesApi } from "./matches.js";
+import { createFriendLeaguesApi } from "./friendLeagues.js";
 
 const RARITY_BPS: Record<Rarity, number> = { Common: 10_000, Rare: 10_500, Legendary: 11_000 };
 
@@ -60,6 +61,12 @@ export function startApiServer(
   app.get("/matches/days", (req: Request, res: Response) => void matches.listDays(req, res));
   app.get("/matches", (req: Request, res: Response) => void matches.listMatches(req, res));
   app.get("/match/:fixtureId", (req: Request, res: Response) => void matches.matchDetail(req, res));
+
+  // Friend leagues (private, invite-code): user's leagues + a single league detail/leaderboard.
+  const friendLeagues = createFriendLeaguesApi(cfg, state, ctx);
+  app.get("/friend-leagues/:owner", (req: Request, res: Response) => void friendLeagues.listUserLeagues(req, res));
+  app.get("/friend-league/:pubkey", (req: Request, res: Response) => void friendLeagues.leagueDetail(req, res));
+  app.get("/manager/:owner", (req: Request, res: Response) => void friendLeagues.managerDetail(req, res));
 
   // cNFT metadata (the endpoint the mint uri points to)
   app.get("/nft/:id", (req: Request, res: Response) => {

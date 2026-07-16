@@ -15,6 +15,7 @@ const SCORE_SEED = Buffer.from("score");
 const PROFILE_SEED = Buffer.from("profile");
 const CARD_SEED = Buffer.from("card");
 const LEAGUE_SEED = Buffer.from("league");
+const SNAPSHOT_SEED = Buffer.from("snapshot");
 
 export function u32le(n: number): Buffer {
   const b = Buffer.alloc(4);
@@ -91,6 +92,12 @@ export function cardPda(
 export function leaguePda(programId: PublicKey, tournament: PublicKey, name: string): PublicKey {
   return PublicKey.findProgramAddressSync(
     [LEAGUE_SEED, tournament.toBuffer(), Buffer.from(name)],
+    programId
+  )[0];
+}
+export function snapshotPda(programId: PublicKey, owner: PublicKey, matchday: number): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [SNAPSHOT_SEED, owner.toBuffer(), u16le(matchday)],
     programId
   )[0];
 }

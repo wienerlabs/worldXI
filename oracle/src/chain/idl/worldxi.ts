@@ -16,7 +16,7 @@ export type Worldxi = {
     {
       "name": "commitScore",
       "docs": [
-        "Oracle: writes/updates a player's live matchday raw score."
+        "Oracle: writes/updates a player's raw matchday points live."
       ],
       "discriminator": [
         6,
@@ -122,9 +122,122 @@ export type Worldxi = {
       ]
     },
     {
+      "name": "createFriendLeague",
+      "docs": [
+        "Creates a private friend league with an invite code; the creator is its first member."
+      ],
+      "discriminator": [
+        77,
+        207,
+        73,
+        186,
+        47,
+        144,
+        51,
+        41
+      ],
+      "accounts": [
+        {
+          "name": "tournament"
+        },
+        {
+          "name": "league",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  114,
+                  105,
+                  101,
+                  110,
+                  100,
+                  95,
+                  108,
+                  101,
+                  97,
+                  103,
+                  117,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "tournament"
+              },
+              {
+                "kind": "arg",
+                "path": "code"
+              }
+            ]
+          }
+        },
+        {
+          "name": "membership",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  97,
+                  103,
+                  117,
+                  101,
+                  95,
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "league"
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "code",
+          "type": {
+            "array": [
+              "u8",
+              6
+            ]
+          }
+        },
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ]
+    },
+    {
       "name": "createPlayerCard",
       "docs": [
-        "Creates the user's PlayerCard (cNFT performance mirror) for a player."
+        "Creates the user's PlayerCard (a cNFT performance mirror) for a player."
       ],
       "discriminator": [
         17,
@@ -287,7 +400,7 @@ export type Worldxi = {
     {
       "name": "createSponsorLeague",
       "docs": [
-        "Sponsor creates a free prize league by depositing the prize into the PDA."
+        "The sponsor creates a free prize league by depositing the prize into a PDA."
       ],
       "discriminator": [
         139,
@@ -354,7 +467,7 @@ export type Worldxi = {
     {
       "name": "initTournament",
       "docs": [
-        "Sets up the tournament, the oracle, and the squad budget."
+        "Sets up the tournament, the oracle and the squad budget."
       ],
       "discriminator": [
         219,
@@ -420,9 +533,75 @@ export type Worldxi = {
       ]
     },
     {
+      "name": "joinFriendLeague",
+      "docs": [
+        "Joins an existing friend league using its invite code (client derives the league PDA)."
+      ],
+      "discriminator": [
+        7,
+        32,
+        61,
+        64,
+        197,
+        22,
+        242,
+        1
+      ],
+      "accounts": [
+        {
+          "name": "league",
+          "writable": true
+        },
+        {
+          "name": "membership",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  97,
+                  103,
+                  117,
+                  101,
+                  95,
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "league"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "registerPlayer",
       "docs": [
-        "Registers a player with tier price and rarity (authority only)."
+        "Registers a player with their tier price and rarity (authority only)."
       ],
       "discriminator": [
         242,
@@ -556,7 +735,7 @@ export type Worldxi = {
     {
       "name": "setLineup",
       "docs": [
-        "Changes formation/starting 11/captain before the matchday."
+        "Changes the formation / starting eleven / captain before the matchday."
       ],
       "discriminator": [
         247,
@@ -614,7 +793,7 @@ export type Worldxi = {
     {
       "name": "setMatchday",
       "docs": [
-        "Oracle: aktif matchday'i ve kilit durumunu ayarlar."
+        "Oracle: sets the active matchday and the lock state."
       ],
       "discriminator": [
         9,
@@ -653,7 +832,7 @@ export type Worldxi = {
     {
       "name": "settleSponsorLeague",
       "docs": [
-        "Authority enters the winner and the prize is sent from the PDA to the winner."
+        "The authority enters the winner and the prize is sent from the PDA to the winner."
       ],
       "discriminator": [
         210,
@@ -773,11 +952,49 @@ export type Worldxi = {
           }
         },
         {
+          "name": "snapshot",
+          "docs": [
+            "Snapshot of the lineup used for this matchday (created here, once per matchday)."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  110,
+                  97,
+                  112,
+                  115,
+                  104,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "squad.owner",
+                "account": "squad"
+              },
+              {
+                "kind": "arg",
+                "path": "matchday"
+              }
+            ]
+          }
+        },
+        {
           "name": "crank",
           "docs": [
-            "Fee payer; permissionless (whoever pays settles it)."
+            "Fee payer; permissionless (whoever pays settles)."
           ],
+          "writable": true,
           "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -790,7 +1007,7 @@ export type Worldxi = {
     {
       "name": "submitSquad",
       "docs": [
-        "Submits the squad and performs full on-chain validation."
+        "Submits a squad and performs full validation on chain."
       ],
       "discriminator": [
         2,
@@ -879,6 +1096,32 @@ export type Worldxi = {
   ],
   "accounts": [
     {
+      "name": "friendLeague",
+      "discriminator": [
+        12,
+        3,
+        122,
+        60,
+        213,
+        3,
+        19,
+        145
+      ]
+    },
+    {
+      "name": "leagueMembership",
+      "discriminator": [
+        146,
+        245,
+        216,
+        155,
+        122,
+        84,
+        133,
+        194
+      ]
+    },
+    {
       "name": "player",
       "discriminator": [
         205,
@@ -944,6 +1187,19 @@ export type Worldxi = {
       ]
     },
     {
+      "name": "squadSnapshot",
+      "discriminator": [
+        133,
+        71,
+        210,
+        182,
+        51,
+        177,
+        101,
+        190
+      ]
+    },
+    {
       "name": "tournament",
       "discriminator": [
         175,
@@ -994,17 +1250,17 @@ export type Worldxi = {
     {
       "code": 6004,
       "name": "invalidFormation",
-      "msg": "The starting 11 does not fully match the position distribution of the selected formation."
+      "msg": "The starting eleven does not fully match the position distribution of the selected formation."
     },
     {
       "code": 6005,
       "name": "captainNotStarter",
-      "msg": "The selected captain is not in the starting 11."
+      "msg": "The selected captain is not in the starting eleven."
     },
     {
       "code": 6006,
       "name": "tournamentLocked",
-      "msg": "The tournament is currently locked (a matchday is in progress)."
+      "msg": "The tournament is currently locked (matchday in progress)."
     },
     {
       "code": 6007,
@@ -1014,12 +1270,12 @@ export type Worldxi = {
     {
       "code": 6008,
       "name": "alreadySettled",
-      "msg": "This matchday was already calculated (settled)."
+      "msg": "This matchday has already been calculated (settled)."
     },
     {
       "code": 6009,
       "name": "nicknameTooLong",
-      "msg": "Nickname exceeds the 24-character limit."
+      "msg": "The nickname exceeds the 24 character limit."
     },
     {
       "code": 6010,
@@ -1029,22 +1285,22 @@ export type Worldxi = {
     {
       "code": 6011,
       "name": "duplicatePlayer",
-      "msg": "There is a duplicate player in the squad; each player can only be selected once."
+      "msg": "The squad contains a duplicate player; each player can only be selected once."
     },
     {
       "code": 6012,
       "name": "accountCountMismatch",
-      "msg": "The number of provided accounts does not match what was expected."
+      "msg": "The number of accounts provided does not match the expected count."
     },
     {
       "code": 6013,
       "name": "accountMismatch",
-      "msg": "The provided account does not match the expected PDA."
+      "msg": "A provided account does not match the expected PDA."
     },
     {
       "code": 6014,
       "name": "starterNotInSquad",
-      "msg": "A starter is not in the selected pool of 15 players."
+      "msg": "A starter is not present in the selected pool of 15 players."
     },
     {
       "code": 6015,
@@ -1054,7 +1310,7 @@ export type Worldxi = {
     {
       "code": 6016,
       "name": "leagueAlreadySettled",
-      "msg": "The sponsor league was already settled."
+      "msg": "The sponsor league has already been settled."
     },
     {
       "code": 6017,
@@ -1066,7 +1322,7 @@ export type Worldxi = {
     {
       "name": "formation",
       "docs": [
-        "Formation; each contains a fixed 1 goalkeeper + a varying DEF/MID/FWD distribution."
+        "Formation; each has a fixed 1 goalkeeper plus a varying DEF/MID/FWD distribution."
       ],
       "type": {
         "kind": "enum",
@@ -1096,6 +1352,84 @@ export type Worldxi = {
       }
     },
     {
+      "name": "friendLeague",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tournament",
+            "docs": [
+              "The tournament it belongs to."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "creator",
+            "docs": [
+              "The wallet that created the league (also its first member)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "docs": [
+              "Human-readable league name."
+            ],
+            "type": "string"
+          },
+          {
+            "name": "code",
+            "docs": [
+              "Invite code shared with friends; also used as a PDA seed."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                6
+              ]
+            }
+          },
+          {
+            "name": "memberCount",
+            "docs": [
+              "Number of members who have joined."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "leagueMembership",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "league",
+            "docs": [
+              "The friend league this membership belongs to."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "docs": [
+              "The member wallet."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "player",
       "type": {
         "kind": "struct",
@@ -1110,7 +1444,7 @@ export type Worldxi = {
           {
             "name": "playerId",
             "docs": [
-              "Unique player id within the tournament (comes from the data set)."
+              "Unique player identifier within the tournament (comes from the data set)."
             ],
             "type": "u32"
           },
@@ -1136,7 +1470,7 @@ export type Worldxi = {
           {
             "name": "position",
             "docs": [
-              "Saha pozisyonu."
+              "Field position."
             ],
             "type": {
               "defined": {
@@ -1147,7 +1481,7 @@ export type Worldxi = {
           {
             "name": "rarity",
             "docs": [
-              "The player's rarity; carried over to cards minted for this player."
+              "The player's rarity; carried over to the cards minted for this player."
             ],
             "type": {
               "defined": {
@@ -1166,7 +1500,7 @@ export type Worldxi = {
             "name": "totalPoints",
             "docs": [
               "The player's live total fantasy points accumulated over the tournament.",
-              "Updated live each time commit_score is called."
+              "Updated live every time commit_score is called."
             ],
             "type": "i64"
           },
@@ -1199,14 +1533,14 @@ export type Worldxi = {
           {
             "name": "playerId",
             "docs": [
-              "Temsil edilen oyuncunun player_id'si."
+              "The player_id of the represented player."
             ],
             "type": "u32"
           },
           {
             "name": "rarity",
             "docs": [
-              "Card rarity (for the score bonus during settle)."
+              "Card rarity (for the point bonus applied during settle)."
             ],
             "type": {
               "defined": {
@@ -1217,14 +1551,14 @@ export type Worldxi = {
           {
             "name": "matchesPlayed",
             "docs": [
-              "The number of matches played counted for the owner through this card."
+              "Number of matches played, counted for the owner through this card."
             ],
             "type": "u32"
           },
           {
             "name": "totalPoints",
             "docs": [
-              "The total fantasy points accumulated by the card."
+              "Total fantasy points accumulated by the card."
             ],
             "type": "i64"
           },
@@ -1238,14 +1572,14 @@ export type Worldxi = {
           {
             "name": "bestSingleScore",
             "docs": [
-              "The highest score recorded in a single matchday."
+              "Highest score recorded in a single matchday."
             ],
             "type": "i32"
           },
           {
             "name": "mint",
             "docs": [
-              "The associated cNFT mint address (Bubblegum asset id / mint)."
+              "Associated cNFT mint address (Bubblegum asset id / mint)."
             ],
             "type": "pubkey"
           },
@@ -1259,7 +1593,7 @@ export type Worldxi = {
     {
       "name": "position",
       "docs": [
-        "Oyuncu saha pozisyonu."
+        "Player field position."
       ],
       "type": {
         "kind": "enum",
@@ -1282,7 +1616,7 @@ export type Worldxi = {
     {
       "name": "rarity",
       "docs": [
-        "Card rarity; determines the score bonus applied during settle (basis points)."
+        "Card rarity; determines the point bonus applied during settle (basis points)."
       ],
       "type": {
         "kind": "enum",
@@ -1321,21 +1655,21 @@ export type Worldxi = {
           {
             "name": "playerId",
             "docs": [
-              "Oyuncunun player_id'si."
+              "The player's player_id."
             ],
             "type": "u32"
           },
           {
             "name": "rawPoints",
             "docs": [
-              "Raw fantasy score without the rarity/captain multiplier applied."
+              "Raw fantasy points, without the rarity/captain multiplier applied."
             ],
             "type": "i32"
           },
           {
             "name": "wasMvp",
             "docs": [
-              "Whether the player was selected MVP this matchday (for the card's mvp_count counter)."
+              "Whether the player was chosen MVP on this matchday (for the card's mvp_count counter)."
             ],
             "type": "bool"
           },
@@ -1368,7 +1702,7 @@ export type Worldxi = {
           {
             "name": "name",
             "docs": [
-              "League name; also used as the PDA seed."
+              "League name; also used as a PDA seed."
             ],
             "type": "string"
           },
@@ -1389,7 +1723,7 @@ export type Worldxi = {
           {
             "name": "winner",
             "docs": [
-              "The winner wallet (filled in after settle)."
+              "The winning wallet (filled in after settle)."
             ],
             "type": "pubkey"
           },
@@ -1434,7 +1768,7 @@ export type Worldxi = {
           {
             "name": "starters",
             "docs": [
-              "The player_ids of the 11 players on the pitch (a subset of players)."
+              "The player_ids of the 11 players on the field (a subset of players)."
             ],
             "type": {
               "array": [
@@ -1457,14 +1791,14 @@ export type Worldxi = {
           {
             "name": "captain",
             "docs": [
-              "The captain's player_id (must be in starters; score is 2x)."
+              "The captain's player_id (must be among the starters; scores 2x)."
             ],
             "type": "u32"
           },
           {
             "name": "spentLamports",
             "docs": [
-              "The total budget spent on the squad (lamports)."
+              "Total budget spent on the squad (lamports)."
             ],
             "type": "u64"
           },
@@ -1478,7 +1812,70 @@ export type Worldxi = {
           {
             "name": "totalPoints",
             "docs": [
-              "The onchain finalized total squad score (accumulates via settle_squad_matchday)."
+              "The squad's onchain finalized total points (accumulated via settle_squad_matchday)."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "squadSnapshot",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "docs": [
+              "The manager wallet this snapshot belongs to."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "matchday",
+            "docs": [
+              "The matchday this snapshot captures."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "starters",
+            "docs": [
+              "The starting 11 that were in play for this matchday."
+            ],
+            "type": {
+              "array": [
+                "u32",
+                11
+              ]
+            }
+          },
+          {
+            "name": "captain",
+            "docs": [
+              "The captain for this matchday."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "formation",
+            "docs": [
+              "The formation used for this matchday."
+            ],
+            "type": {
+              "defined": {
+                "name": "formation"
+              }
+            }
+          },
+          {
+            "name": "points",
+            "docs": [
+              "Points this lineup scored in this matchday (rarity bonus + captain applied)."
             ],
             "type": "i64"
           },
@@ -1504,14 +1901,14 @@ export type Worldxi = {
           {
             "name": "oracle",
             "docs": [
-              "The only authorized signer for commit_score (oracle backend keypair)."
+              "The sole authorized signer for commit_score (the oracle backend keypair)."
             ],
             "type": "pubkey"
           },
           {
             "name": "name",
             "docs": [
-              "Human-readable tournament name; also used as the PDA seed."
+              "Human-readable tournament name; also used as a PDA seed."
             ],
             "type": "string"
           },
@@ -1539,7 +1936,7 @@ export type Worldxi = {
           {
             "name": "squadCount",
             "docs": [
-              "The number of squads created in this tournament."
+              "Number of squads created in this tournament."
             ],
             "type": "u64"
           },
@@ -1558,7 +1955,7 @@ export type Worldxi = {
           {
             "name": "owner",
             "docs": [
-              "The wallet that owns the profile (this is the identity; nickname is not unique)."
+              "The wallet that owns the profile (this is the identity; the nickname is not unique)."
             ],
             "type": "pubkey"
           },
@@ -1572,7 +1969,7 @@ export type Worldxi = {
           {
             "name": "countryCode",
             "docs": [
-              "Optional: the country the user supports/joined (ISO alpha-3)."
+              "Optional: the country the user supports/participates for (ISO alpha-3)."
             ],
             "type": {
               "option": {
@@ -1586,7 +1983,7 @@ export type Worldxi = {
           {
             "name": "totalPoints",
             "docs": [
-              "The user's onchain finalized total score over the tournament."
+              "The user's onchain finalized total points over the tournament."
             ],
             "type": "i64"
           },

@@ -38,6 +38,53 @@ export function profilePda(owner: PublicKey): PublicKey {
 export function cardPda(t: PublicKey, owner: PublicKey, id: number): PublicKey {
   return PublicKey.findProgramAddressSync([enc.encode("card"), t.toBytes(), owner.toBytes(), u32le(id)], PROGRAM_ID)[0];
 }
+export function friendLeaguePda(t: PublicKey, code: Uint8Array): PublicKey {
+  return PublicKey.findProgramAddressSync([enc.encode("friend_league"), t.toBytes(), code], PROGRAM_ID)[0];
+}
+export function membershipPda(league: PublicKey, owner: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync([enc.encode("league_member"), league.toBytes(), owner.toBytes()], PROGRAM_ID)[0];
+}
+
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous 0/O/1/I
+/** Generates a 6-character invite code (uppercase, no ambiguous characters). */
+export function generateLeagueCode(): string {
+  let c = "";
+  for (let i = 0; i < 6; i++) c += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+  return c;
+}
+/** 6-char code -> [u8; 6] bytes for the PDA seed / instruction argument. */
+function codeBytes(code: string): Uint8Array {
+  return enc.encode(code.toUpperCase().padEnd(6, "X").slice(0, 6));
+}
+
+/** Creates a private friend league; the creator becomes its first member. Returns the league pubkey. */
+export async function createFriendLeague(
+  program: Program<Worldxi>, owner: PublicKey, code: string, name: string
+): Promise<{ signature: string; league: string; code: string }> {
+  const t = tournamentPda();
+  const cb = codeBytes(code);
+  const league = friendLeaguePda(t, cb);
+  const membership = membershipPda(league, owner);
+  const signature = await program.methods
+    .createFriendLeague(Array.from(cb), name)
+    .accountsPartial({ tournament: t, league, membership, creator: owner, systemProgram: SystemProgram.programId })
+    .rpc();
+  return { signature, league: league.toBase58(), code: code.toUpperCase() };
+}
+
+/** Joins an existing friend league by its invite code. */
+export async function joinFriendLeague(
+  program: Program<Worldxi>, owner: PublicKey, code: string
+): Promise<{ signature: string; league: string }> {
+  const t = tournamentPda();
+  const league = friendLeaguePda(t, codeBytes(code));
+  const membership = membershipPda(league, owner);
+  const signature = await program.methods
+    .joinFriendLeague()
+    .accountsPartial({ league, membership, owner, systemProgram: SystemProgram.programId })
+    .rpc();
+  return { signature, league: league.toBase58() };
+}
 
 /** On-chain "living card" performance mirror (PlayerCard account). */
 export interface OnchainCard {

@@ -17,6 +17,8 @@ import { Leagues } from "./pages/Leagues";
 import { Rules } from "./pages/Rules";
 import { Matches } from "./pages/Matches";
 import { MatchDetail } from "./pages/MatchDetail";
+import { LeagueDetail } from "./pages/LeagueDetail";
+import { ManagerDetail } from "./pages/ManagerDetail";
 
 const links = [
   { to: "/squad", label: "My Squad" },
@@ -79,6 +81,8 @@ export function App() {
               <Route path="/managers" element={<UserLeaderboard />} />
               <Route path="/cards" element={<NftGallery />} />
               <Route path="/leagues" element={<Leagues />} />
+              <Route path="/league/:pubkey" element={<LeagueDetail />} />
+              <Route path="/manager/:owner" element={<ManagerDetail />} />
               <Route path="/rules" element={<Rules />} />
               <Route path="/matches" element={<Matches />} />
               <Route path="/match/:fixtureId" element={<MatchDetail />} />

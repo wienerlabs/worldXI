@@ -131,4 +131,59 @@ export interface PlayerStats {
 export const fetchPlayerStats = (): Promise<PlayerStats[]> =>
   getJson<PlayerStats[]>(`${API_BASE}/players/stats`);
 
+// --- Friend leagues (private, invite-code) ---
+export interface FriendLeagueRow {
+  pubkey: string;
+  name: string;
+  code: string;
+  memberCount: number;
+  isCreator: boolean;
+}
+export interface LeagueMember {
+  owner: string;
+  nickname: string;
+  hasSquad: boolean;
+  points: number;
+  rank: number;
+  squad: { players: number[]; starters: number[]; captain: number; formation: string } | null;
+}
+export interface LeagueDetailData {
+  pubkey: string;
+  name: string;
+  code: string;
+  creator: string;
+  memberCount: number;
+  matchStarted: boolean;
+  members: LeagueMember[];
+}
+export const fetchMyFriendLeagues = (owner: string): Promise<FriendLeagueRow[]> =>
+  getJson<FriendLeagueRow[]>(`${API_BASE}/friend-leagues/${owner}`);
+export const fetchLeagueDetail = (pubkey: string): Promise<LeagueDetailData> =>
+  getJson<LeagueDetailData>(`${API_BASE}/friend-league/${pubkey}`);
+
+// --- Manager detail: active squad (#1) + per-matchday lineup/points history (#2, #3) ---
+export interface ManagerSquad {
+  players: number[];
+  starters: number[];
+  captain: number;
+  formation: string;
+  points: number;
+}
+export interface MatchdaySquad {
+  matchday: number;
+  starters: number[];
+  captain: number;
+  formation: string;
+  points: number;
+}
+export interface ManagerDetailData {
+  owner: string;
+  nickname: string;
+  matchStarted: boolean;
+  activeSquad: ManagerSquad | null;
+  history: MatchdaySquad[];
+}
+export const fetchManagerDetail = (owner: string): Promise<ManagerDetailData> =>
+  getJson<ManagerDetailData>(`${API_BASE}/manager/${owner}`);
+
 export const apiBase = API_BASE;
