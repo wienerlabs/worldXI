@@ -30,3 +30,8 @@ wallets
 # Scratch / temp
 1.jpeg
 scratchpad
+worldcup.png
+
+# Frontend build artifacts (copied from data/ by the copy-data script)
+app/public/players.json
+app/public/countries.json
