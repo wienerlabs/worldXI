@@ -90,7 +90,7 @@ function GoalOverlay({ goal }: { goal: LiveGoal }) {
 
         <div className="goal-card">
           {player ? (
-            <PlayerCard player={player} country={country} width={190} pointsOverride={goal.scorerPoints} />
+            <PlayerCard player={player} country={country} width={248} pointsOverride={goal.scorerPoints} />
           ) : (
             <div className="goal-flag">{(homeScored ? goal.home.flag : goal.away.flag) ?? "GOAL"}</div>
           )}
@@ -183,29 +183,29 @@ const GOAL_CSS = `
 }
 .goal-content {
   position: relative; z-index: 2; text-align: center;
-  display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 20px;
-  width: min(560px, 92vw); margin: 0 auto;
+  display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 22px;
+  width: min(680px, 94vw); margin: 0 auto;
 }
 .goal-word {
   font-family: var(--font-display, inherit); font-weight: 900; letter-spacing: 0.04em;
-  font-size: clamp(44px, 9vw, 96px); line-height: 1; white-space: nowrap; max-width: 100%;
-  color: var(--gold); text-shadow: 0 0 34px rgba(232,189,84,0.6), 0 6px 22px rgba(0,0,0,0.6);
+  font-size: clamp(58px, 12vw, 132px); line-height: 1; white-space: nowrap; max-width: 100%;
+  color: var(--gold); text-shadow: 0 0 40px rgba(232,189,84,0.65), 0 6px 26px rgba(0,0,0,0.6);
   animation: wordPop 0.5s cubic-bezier(0.2,1.4,0.4,1) both;
 }
 @keyframes wordPop { from { transform: scale(0.55); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-.goal-match { font-size: clamp(13px, 2.2vw, 18px); font-weight: 700; color: var(--chalk); letter-spacing: 0.02em; }
+.goal-match { font-size: clamp(15px, 2.6vw, 22px); font-weight: 700; color: var(--chalk); letter-spacing: 0.02em; }
 .goal-min { color: var(--volt); }
 .goal-card { animation: cardPop 0.55s cubic-bezier(0.2,1.3,0.35,1) 0.08s both; filter: drop-shadow(0 24px 44px rgba(0,0,0,0.55)); }
 @keyframes cardPop { from { transform: translateY(22px) scale(0.7); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
-.goal-flag { font-size: 96px; line-height: 1; }
+.goal-flag { font-size: 124px; line-height: 1; }
 .goal-score {
-  display: inline-flex; align-items: center; gap: 14px; margin-top: 4px;
-  padding: 10px 22px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 18px; margin-top: 6px;
+  padding: 13px 28px; border-radius: 999px;
   background: rgba(7,10,8,0.7); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(4px);
 }
-.goal-team { font-size: clamp(13px, 2vw, 17px); font-weight: 800; color: var(--chalk-2); }
-.goal-num { font-family: var(--font-num, inherit); font-weight: 900; font-size: clamp(30px, 5vw, 48px); color: #ffffff; min-width: 0.7em; }
-.goal-num.scored { color: var(--live); animation: scoreBlink 0.6s steps(1, end) infinite; text-shadow: 0 0 18px rgba(255,71,71,0.7); }
+.goal-team { font-size: clamp(15px, 2.4vw, 21px); font-weight: 800; color: var(--chalk-2); }
+.goal-num { font-family: var(--font-num, inherit); font-weight: 900; font-size: clamp(38px, 6.4vw, 62px); color: #ffffff; min-width: 0.7em; }
+.goal-num.scored { color: var(--live); animation: scoreBlink 0.6s steps(1, end) infinite; text-shadow: 0 0 22px rgba(255,71,71,0.75); }
 @keyframes scoreBlink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.2; } }
-.goal-dash { color: var(--faint, #6b736c); font-weight: 700; font-size: clamp(22px, 3vw, 32px); }
+.goal-dash { color: var(--faint, #6b736c); font-weight: 700; font-size: clamp(28px, 4vw, 42px); }
 `;
