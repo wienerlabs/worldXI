@@ -13,7 +13,14 @@ export function PlayerDetail() {
   const [noApi, setNoApi] = useState(false);
 
   useEffect(() => {
-    fetchPlayerDetail(pid).then(setDetail).catch(() => setNoApi(true));
+    // Skip the request entirely for a non-numeric route param (avoids /player/NaN);
+    // the missing-player branch below renders the not-found state.
+    if (!Number.isFinite(pid)) return;
+    let alive = true;
+    fetchPlayerDetail(pid)
+      .then((d) => { if (alive) setDetail(d); })
+      .catch(() => { if (alive) setNoApi(true); });
+    return () => { alive = false; };
   }, [pid]);
 
   if (!player)
@@ -32,8 +39,8 @@ export function PlayerDetail() {
 
   const country = countryByIso.get(player.nationalTeam);
   const primary = country?.primaryColor ?? "var(--gold)";
-  const totalGoals = detail?.history.reduce((n, h) => n + (h.stat.goals as number), 0) ?? 0;
-  const totalAssists = detail?.history.reduce((n, h) => n + (h.stat.assists as number), 0) ?? 0;
+  const totalGoals = detail?.history.reduce((n, h) => n + ((h.stat.goals as number) ?? 0), 0) ?? 0;
+  const totalAssists = detail?.history.reduce((n, h) => n + ((h.stat.assists as number) ?? 0), 0) ?? 0;
 
   const stats: Array<{ label: string; value: string | number; accent?: string }> = detail
     ? [

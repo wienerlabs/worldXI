@@ -22,10 +22,12 @@ export function GoalCelebration() {
     let closed = false;
     let ws: WebSocket | null = null;
     let retry: ReturnType<typeof setTimeout> | undefined;
+    let backoff = 1000; // reconnect delay, doubles each failure up to a cap
 
     const connect = (): void => {
       if (closed) return;
       ws = new WebSocket(wsUrl());
+      ws.onopen = () => { backoff = 1000; }; // reset backoff on a successful connection
       ws.onmessage = (ev) => {
         try {
           const msg = JSON.parse(String(ev.data)) as { type?: string; goal?: LiveGoal };
@@ -35,7 +37,12 @@ export function GoalCelebration() {
           }
         } catch { /* ignore malformed frame */ }
       };
-      ws.onclose = () => { if (!closed) retry = setTimeout(connect, 3000); };
+      ws.onclose = () => {
+        if (closed) return;
+        // Capped exponential backoff so a downed oracle is not hammered.
+        retry = setTimeout(connect, backoff);
+        backoff = Math.min(backoff * 2, 30000);
+      };
       ws.onerror = () => ws?.close();
     };
 

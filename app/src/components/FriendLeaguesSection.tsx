@@ -42,7 +42,12 @@ export function FriendLeaguesSection() {
   const submitJoin = async (rawCode: string) => {
     const code = rawCode.trim().toUpperCase();
     if (!wallet) return;
-    if (code.length !== 6) { setMsg("Invite codes are 6 characters."); return; }
+    // Validate against the same safe alphabet generateLeagueCode uses (no O/0/I/1)
+    // before building any transaction.
+    if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) {
+      setMsg("Invite codes are 6 characters (letters and digits, no O/0/I/1).");
+      return;
+    }
     setModal(null); setBusy(true); setMsg("Joining the league on-chain, approve it in your wallet.");
     try {
       const program = getProgram(connection, wallet);

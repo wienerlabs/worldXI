@@ -27,10 +27,7 @@ pub fn load_checked_pda<'info, T: AccountDeserialize>(
 
 /// Writes back an account that was loaded and modified via `load_checked_pda`.
 /// The account must be mutable (writable).
-pub fn store_account<'info, T: AccountSerialize>(
-    ai: &AccountInfo<'info>,
-    value: &T,
-) -> Result<()> {
+pub fn store_account<'info, T: AccountSerialize>(ai: &AccountInfo<'info>, value: &T) -> Result<()> {
     let mut data = ai.try_borrow_mut_data()?;
     let mut slice: &mut [u8] = &mut data;
     value.try_serialize(&mut slice)?;

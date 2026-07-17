@@ -27,10 +27,19 @@ async function loadHistory(state: OracleState): Promise<void> {
   logger.info("Tournament history loaded into state", { players: state.playerTotals.size });
 }
 
-// The public RPC confirm phase sometimes throws an uncatchable callback error
-// (during live commit). Log it without crashing the process; the API stays up.
+// The public RPC confirm phase can emit an uncatchable async rejection during live commit.
+// Tolerate ONLY those known-transient RPC errors (warn); surface anything else as an error so
+// real bugs are no longer silently masked. The process stays up either way (oracle uptime is
+// critical), but unexpected rejections are now visible instead of hidden.
+const TRANSIENT_RPC =
+  /confirmTransaction|block height exceeded|Blockhash not found|Too many requests|\b429\b|TransactionExpired|node is behind|fetch failed|ECONNRESET|ETIMEDOUT/i;
 process.on("unhandledRejection", (reason) => {
-  logger.warn("unhandledRejection (ignored)", { reason: String(reason).slice(0, 140) });
+  const msg = String(reason);
+  if (TRANSIENT_RPC.test(msg)) {
+    logger.warn("transient RPC rejection (ignored)", { reason: msg.slice(0, 160) });
+  } else {
+    logger.error("unexpected unhandledRejection", { reason: msg.slice(0, 300) });
+  }
 });
 
 async function main(): Promise<void> {

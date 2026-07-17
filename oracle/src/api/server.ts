@@ -12,7 +12,7 @@
  */
 import express, { type Express, type Request, type Response } from "express";
 import { createServer, type Server } from "node:http";
-import { WebSocketServer } from "ws";
+import { WebSocketServer, type WebSocket } from "ws";
 import type { Config } from "../config.js";
 import { logger } from "../logger.js";
 import type { OracleState } from "../state.js";
@@ -22,6 +22,7 @@ import type { TxlineClient } from "../txline/client.js";
 import { playerNftMetadata } from "./nftMetadata.js";
 import { createMatchesApi } from "./matches.js";
 import { createFriendLeaguesApi } from "./friendLeagues.js";
+import { rateLimiter, responseCache, corsOrigins } from "./security.js";
 
 const RARITY_BPS: Record<Rarity, number> = { Common: 10_000, Rare: 10_500, Legendary: 11_000 };
 
@@ -48,10 +49,18 @@ export function startApiServer(
   txline: TxlineClient | null = null
 ): ApiHandle {
   const app: Express = express();
-  app.use((_req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    next();
-  });
+  app.set("trust proxy", true); // so req.ip reflects the client behind a reverse proxy
+  // CORS: restrict to configured frontend origins (comma-separated). Set CORS_ORIGINS="*"
+  // to opt back into a wildcard. Default covers the local Vite dev server.
+  const corsAllow = (process.env.CORS_ORIGINS ?? "http://localhost:5173,http://localhost:5174")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  app.use(corsOrigins(corsAllow));
+  // Blunt the DoS / RPC-drain surface: cap requests per IP per minute.
+  app.use(rateLimiter({ windowMs: 60_000, max: 300 }));
+  // Short-TTL cache shared by the heavy, RPC-backed endpoints (getProgramAccounts scans).
+  const heavyCache = responseCache(6_000);
 
   app.get("/health", (_req: Request, res: Response) => res.json({ ok: true }));
 
@@ -65,9 +74,9 @@ export function startApiServer(
 
   // Friend leagues (private, invite-code): user's leagues + a single league detail/leaderboard.
   const friendLeagues = createFriendLeaguesApi(cfg, state, ctx);
-  app.get("/friend-leagues/:owner", (req: Request, res: Response) => void friendLeagues.listUserLeagues(req, res));
-  app.get("/friend-league/:pubkey", (req: Request, res: Response) => void friendLeagues.leagueDetail(req, res));
-  app.get("/manager/:owner", (req: Request, res: Response) => void friendLeagues.managerDetail(req, res));
+  app.get("/friend-leagues/:owner", heavyCache, (req: Request, res: Response) => void friendLeagues.listUserLeagues(req, res));
+  app.get("/friend-league/:pubkey", heavyCache, (req: Request, res: Response) => void friendLeagues.leagueDetail(req, res));
+  app.get("/manager/:owner", heavyCache, (req: Request, res: Response) => void friendLeagues.managerDetail(req, res));
 
   // cNFT metadata (the endpoint the mint uri points to)
   app.get("/nft/:id", (req: Request, res: Response) => {
@@ -194,7 +203,7 @@ export function startApiServer(
     res.json({ matchday: state.activeMatchday, players: rows });
   });
 
-  app.get("/leaderboard/users", async (req: Request, res: Response) => {
+  app.get("/leaderboard/users", heavyCache, async (req: Request, res: Response) => {
     try {
       const scope = req.query.scope === "daily" ? "daily" : "global";
       const rows = await buildUserLeaderboard(state, ctx, scope);
@@ -206,7 +215,7 @@ export function startApiServer(
   });
 
   // Sponsor leagues (onchain). The prize is funded by the sponsor; no entry fee.
-  app.get("/leagues", async (_req: Request, res: Response) => {
+  app.get("/leagues", heavyCache, async (_req: Request, res: Response) => {
     try {
       const rows = await ctx.program.account.sponsorLeague.all();
       res.json(
@@ -225,7 +234,30 @@ export function startApiServer(
   });
 
   const server = createServer(app);
-  const wss = new WebSocketServer({ server });
+  // Hardened WS: bounded payload, connection cap, and a heartbeat that reaps dead sockets
+  // (otherwise an attacker could open unbounded/idle connections and exhaust memory/FDs).
+  const MAX_WS_CLIENTS = 200;
+  const wss = new WebSocketServer({ server, maxPayload: 16 * 1024 });
+  const wsAlive = new WeakMap<WebSocket, boolean>();
+  wss.on("connection", (socket: WebSocket) => {
+    if (wss.clients.size > MAX_WS_CLIENTS) {
+      socket.close(1013, "server busy");
+      return;
+    }
+    wsAlive.set(socket, true);
+    socket.on("pong", () => wsAlive.set(socket, true));
+  });
+  const heartbeat = setInterval(() => {
+    for (const client of wss.clients) {
+      if (wsAlive.get(client) === false) {
+        client.terminate();
+        continue;
+      }
+      wsAlive.set(client, false);
+      client.ping();
+    }
+  }, 30_000);
+
   const send = (msg: string): void => {
     for (const client of wss.clients) {
       if (client.readyState === client.OPEN) client.send(msg);
@@ -242,6 +274,7 @@ export function startApiServer(
     broadcastGoal,
     close: () =>
       new Promise<void>((resolveClose) => {
+        clearInterval(heartbeat);
         wss.close();
         server.close(() => resolveClose());
       }),

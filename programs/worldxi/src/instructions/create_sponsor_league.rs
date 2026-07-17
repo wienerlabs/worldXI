@@ -27,11 +27,7 @@ pub struct CreateSponsorLeague<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(
-    ctx: Context<CreateSponsorLeague>,
-    name: String,
-    prize_lamports: u64,
-) -> Result<()> {
+pub fn handler(ctx: Context<CreateSponsorLeague>, name: String, prize_lamports: u64) -> Result<()> {
     require!(
         name.len() <= MAX_LEAGUE_NAME_LEN,
         WorldXiError::InvalidArgument

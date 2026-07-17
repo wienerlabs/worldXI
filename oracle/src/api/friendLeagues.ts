@@ -21,6 +21,15 @@ function codeToString(code: number[] | Uint8Array): string {
   return Buffer.from(code as number[]).toString("ascii").replace(/\0+$/, "");
 }
 
+/** Parses a base58 address, returning null (for a 400) instead of throwing (a 500). */
+function parsePk(value: string): PublicKey | null {
+  try {
+    return new PublicKey(value);
+  } catch {
+    return null;
+  }
+}
+
 export interface FriendLeaguesApi {
   listUserLeagues: (req: Request, res: Response) => Promise<void>;
   leagueDetail: (req: Request, res: Response) => Promise<void>;
@@ -45,7 +54,10 @@ export function createFriendLeaguesApi(cfg: Config, state: OracleState, ctx: Cha
   const listUserLeagues = async (req: Request, res: Response): Promise<void> => {
     try {
       const owner = String(req.params.owner ?? "");
-      new PublicKey(owner); // validate
+      if (!parsePk(owner)) {
+        res.status(400).json({ error: "invalid owner address" });
+        return;
+      }
       // LeagueMembership layout: disc(8) + league(32) + owner(32) -> owner at offset 40.
       const memberships = await ctx.program.account.leagueMembership.all([
         { memcmp: { offset: 8 + 32, bytes: owner } },
@@ -72,7 +84,11 @@ export function createFriendLeaguesApi(cfg: Config, state: OracleState, ctx: Cha
   const leagueDetail = async (req: Request, res: Response): Promise<void> => {
     try {
       const pubkey = String(req.params.pubkey ?? "");
-      const leagueKey = new PublicKey(pubkey);
+      const leagueKey = parsePk(pubkey);
+      if (!leagueKey) {
+        res.status(400).json({ error: "invalid league address" });
+        return;
+      }
       const lg = await ctx.program.account.friendLeague.fetch(leagueKey);
 
       // Members: LeagueMembership with league at offset 8.
@@ -139,7 +155,11 @@ export function createFriendLeaguesApi(cfg: Config, state: OracleState, ctx: Cha
   const managerDetail = async (req: Request, res: Response): Promise<void> => {
     try {
       const owner = String(req.params.owner ?? "");
-      const ownerPk = new PublicKey(owner);
+      const ownerPk = parsePk(owner);
+      if (!ownerPk) {
+        res.status(400).json({ error: "invalid owner address" });
+        return;
+      }
       const tournament = tournamentPda(ctx.programId, cfg.TOURNAMENT_NAME);
       const [squad, prof, snaps] = await Promise.all([
         ctx.program.account.squad.fetchNullable(squadPda(ctx.programId, tournament, ownerPk)),

@@ -74,10 +74,7 @@ pub fn handler(
     }
 
     // --- 3) captain among the starters ---
-    require!(
-        starters.contains(&captain),
-        WorldXiError::CaptainNotStarter
-    );
+    require!(starters.contains(&captain), WorldXiError::CaptainNotStarter);
 
     // --- 4) remaining_accounts = 15 Player, in the same order as players ---
     require!(
@@ -102,8 +99,15 @@ pub fn handler(
         let player: Player = load_checked_pda(ai, seeds)?;
 
         // Confirm the account belongs to the same tournament
-        require_keys_eq!(player.tournament, tournament_key, WorldXiError::AccountMismatch);
-        require!(player.player_id == players[i], WorldXiError::AccountMismatch);
+        require_keys_eq!(
+            player.tournament,
+            tournament_key,
+            WorldXiError::AccountMismatch
+        );
+        require!(
+            player.player_id == players[i],
+            WorldXiError::AccountMismatch
+        );
 
         positions[i] = (player.player_id, player.position);
 

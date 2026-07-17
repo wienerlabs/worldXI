@@ -33,7 +33,10 @@ pub fn handler(
     captain: u32,
 ) -> Result<()> {
     // If a matchday is in progress, the lineup is locked.
-    require!(!ctx.accounts.tournament.locked, WorldXiError::TournamentLocked);
+    require!(
+        !ctx.accounts.tournament.locked,
+        WorldXiError::TournamentLocked
+    );
 
     let squad = &ctx.accounts.squad;
     let tournament_key = ctx.accounts.tournament.key();
@@ -66,7 +69,10 @@ pub fn handler(
             &starters[i].to_le_bytes(),
         ];
         let player: Player = load_checked_pda(ai, seeds)?;
-        require!(player.player_id == starters[i], WorldXiError::AccountMismatch);
+        require!(
+            player.player_id == starters[i],
+            WorldXiError::AccountMismatch
+        );
         match player.position {
             Position::Goalkeeper => gk += 1,
             Position::Defender => def += 1,

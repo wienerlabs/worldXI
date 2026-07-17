@@ -56,11 +56,13 @@ export function SquadBuilder() {
       let nickname: string | undefined;
       let country: string | undefined;
       if (!prof) {
-        nickname = window.prompt("First time - choose a manager nickname (max 24):")?.slice(0, 24) || undefined;
+        // Drop control characters, trim, and cap the nickname to a reasonable length.
+        const rawNick = window.prompt("First time - choose a manager nickname (max 24):") ?? "";
+        nickname = rawNick.replace(/[\u0000-\u001F\u007F]/g, "").trim().slice(0, 24) || undefined;
         if (!nickname) { setMsg("A nickname is required for your first squad."); setBusy(false); return; }
-        // Optional: the country you joined (3-letter code, e.g. TUR). Can be left blank.
-        country = window.prompt("Optional - your country (3-letter code, e.g. TUR, FRA, BRA). Leave blank to skip:")
-          ?.trim().toUpperCase().slice(0, 3) || undefined;
+        // Optional: the country you joined (3-letter code, e.g. TUR). Letters only, uppercased.
+        const rawCountry = window.prompt("Optional - your country (3-letter code, e.g. TUR, FRA, BRA). Leave blank to skip:") ?? "";
+        country = rawCountry.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 3) || undefined;
       }
       const sig = await submitSquad(program, wallet.publicKey, picks, starterIds, formation, captainId!, nickname, country);
       setMsg(`Squad submitted on-chain! Tx: ${sig.slice(0, 12)}… — taking you to your squad…`);

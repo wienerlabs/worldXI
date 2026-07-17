@@ -44,6 +44,58 @@ interface Persisted {
 
 const POS_LIMITS: Record<Position, number> = { GK: 2, DEF: 5, MID: 5, FWD: 3 };
 
+/** Empty/default squad, used both for a fresh start and when persisted data is invalid. */
+const DEFAULT_STATE: Persisted = { picks: [], formation: "F433", captainId: null, starterIds: [] };
+
+/** Upper bound for a persisted budget so a tampered blob cannot inject an absurd value. */
+const MAX_BUDGET = 100000;
+
+/**
+ * Validates a persisted squad blob loaded from localStorage before trusting it.
+ * On any structural problem we fall back to the empty default squad rather than
+ * feeding untrusted data into the app. Behavior is identical for valid data.
+ */
+function parsePersisted(raw: string): Persisted {
+  let data: unknown;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return DEFAULT_STATE;
+  }
+  if (typeof data !== "object" || data === null) return DEFAULT_STATE;
+  const o = data as Record<string, unknown>;
+
+  // picks: an array; keep only entries carrying a finite numeric playerId.
+  if (!Array.isArray(o.picks)) return DEFAULT_STATE;
+  const picks = (o.picks as unknown[]).filter(
+    (p): p is Player =>
+      typeof p === "object" && p !== null && Number.isFinite((p as { playerId?: unknown }).playerId)
+  );
+
+  // starterIds: an array of finite numbers.
+  if (!Array.isArray(o.starterIds) || !(o.starterIds as unknown[]).every((n) => Number.isFinite(n))) {
+    return DEFAULT_STATE;
+  }
+  const starterIds = o.starterIds as number[];
+
+  // captainId: a finite number or null.
+  if (o.captainId !== null && !Number.isFinite(o.captainId)) return DEFAULT_STATE;
+  const captainId = (o.captainId as number | null) ?? null;
+
+  // formation: a known formation key.
+  if (typeof o.formation !== "string" || !(o.formation in FORMATIONS)) return DEFAULT_STATE;
+  const formation = o.formation;
+
+  // budget: optional; keep only a finite positive value, clamped to a sane maximum.
+  // Absent/invalid stays undefined, which resolves to the default budget downstream.
+  const budget =
+    Number.isFinite(o.budget) && (o.budget as number) > 0
+      ? Math.min(o.budget as number, MAX_BUDGET)
+      : undefined;
+
+  return { picks, starterIds, captainId, formation, budget };
+}
+
 /** Starter position needs for the formation (1 GK fixed). */
 function need(formation: string): Record<Position, number> {
   const s = FORMATIONS[formation] ?? FORMATIONS.F433;
@@ -64,11 +116,11 @@ export function SquadProvider({ children }: { children: ReactNode }) {
   const [rawState, setState] = useState<Persisted>(() => {
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) return JSON.parse(raw) as Persisted;
+      if (raw) return parsePersisted(raw);
     } catch {
       /* ignore */
     }
-    return { picks: [], formation: "F433", captainId: null, starterIds: [] };
+    return DEFAULT_STATE;
   });
 
   useEffect(() => {

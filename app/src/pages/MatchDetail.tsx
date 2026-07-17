@@ -11,6 +11,9 @@ export function MatchDetail() {
   const [err, setErr] = useState(false);
 
   useEffect(() => {
+    // A non-numeric route param would request /match/NaN; short-circuit to the
+    // empty/not-found state instead.
+    if (!Number.isFinite(id)) { setErr(true); return; }
     let alive = true;
     const load = () =>
       fetchMatchDetail(id)

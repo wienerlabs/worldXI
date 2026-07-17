@@ -4,7 +4,14 @@
  */
 import type { Country, Player, PlayerLeaderRow, UserLeaderRow } from "./types";
 
-const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? "http://localhost:8787";
+const API_BASE_ENV = import.meta.env.VITE_API_BASE as string | undefined;
+// Fail loudly if a production build ships without an explicit API base, so a
+// misconfigured prod deploy never silently hits localhost. In dev we keep the
+// localhost default for convenience.
+if (import.meta.env.PROD && !API_BASE_ENV) {
+  throw new Error("VITE_API_BASE must be set in production builds");
+}
+const API_BASE = API_BASE_ENV ?? "http://localhost:8787";
 
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
@@ -207,7 +214,9 @@ export interface LiveGoal {
 }
 export const fetchLiveGoals = (): Promise<LiveGoal[]> => getJson<LiveGoal[]>(`${API_BASE}/live/goals`);
 
-/** WebSocket URL for the oracle (same host/port as the REST API). */
+/** WebSocket URL for the oracle (same host/port as the REST API).
+ *  Replacing only the leading "http" keeps the scheme secure: https -> wss and
+ *  http -> ws, so a TLS API base always yields an encrypted socket. */
 export const wsUrl = (): string => API_BASE.replace(/^http/, "ws");
 
 export const apiBase = API_BASE;

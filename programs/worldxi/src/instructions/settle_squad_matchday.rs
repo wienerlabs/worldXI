@@ -5,10 +5,15 @@
 //! substitute at the same position). For each player:
 //!   final = raw_points * rarity_bonus_bps / 10000, and * 2 if captain
 //! The total is applied to squad.total_points, the PlayerCard history, and
-//! UserProfile.total_points. Idempotency: each matchday can be settled only once.
+//! UserProfile.total_points.
 //!
-//! Permissionless crank: any signer (fee payer) can call it; which accounts get
-//! processed is secured by PDA validation.
+//! Authority: ONLY the tournament oracle may settle (crank == tournament.oracle).
+//! A permissionless crank let anyone lock a victim's matchday with a partial /
+//! worst-case account set, permanently denying their real points; gating to the
+//! oracle removes that grief vector and the "field my best 11 of 15" abuse.
+//! Idempotency: the per-matchday SquadSnapshot PDA (init) guarantees a matchday is
+//! settled exactly once, in any order (a late matchday can no longer lock out an
+//! earlier one).
 
 use crate::constants::{
     BPS_DENOMINATOR, CAPTAIN_MULTIPLIER, CARD_SEED, SCORE_SEED, SNAPSHOT_SEED, STARTERS_SIZE,
@@ -50,8 +55,8 @@ pub struct SettleSquadMatchday<'info> {
     )]
     pub snapshot: Account<'info, SquadSnapshot>,
 
-    /// Fee payer; permissionless (whoever pays settles).
-    #[account(mut)]
+    /// Fee payer AND authority: only the tournament oracle may settle a squad's matchday.
+    #[account(mut, address = tournament.oracle @ WorldXiError::UnauthorizedOracle)]
     pub crank: Signer<'info>,
 
     pub system_program: Program<'info, System>,
@@ -59,11 +64,19 @@ pub struct SettleSquadMatchday<'info> {
 }
 
 pub fn handler(ctx: Context<SettleSquadMatchday>, matchday: u16) -> Result<()> {
-    // Idempotency: this matchday must not have been settled before.
+    // The matchday must be finished (not in progress) and not in the future. Settling a
+    // still-locked / not-yet-reached matchday would freeze the squad on partial commit data.
     require!(
-        matchday > ctx.accounts.squad.locked_matchday,
-        WorldXiError::AlreadySettled
+        !ctx.accounts.tournament.locked,
+        WorldXiError::TournamentLocked
     );
+    require!(
+        matchday <= ctx.accounts.tournament.current_matchday,
+        WorldXiError::InvalidArgument
+    );
+    // Idempotency is enforced by the per-matchday SquadSnapshot PDA below (its `init` fails
+    // if this matchday was already settled). This allows settling matchdays in ANY order,
+    // each exactly once - a later matchday can no longer permanently lock out an earlier one.
 
     let tournament_key = ctx.accounts.tournament.key();
     let squad_owner = ctx.accounts.squad.owner;
@@ -146,7 +159,10 @@ pub fn handler(ctx: Context<SettleSquadMatchday>, matchday: u16) -> Result<()> {
         ];
         let mut card: PlayerCard = load_checked_pda(card_ai, card_seeds)?;
         require_keys_eq!(card.owner, squad_owner, WorldXiError::AccountMismatch);
-        require!(card.player_id == sc.player_id, WorldXiError::AccountMismatch);
+        require!(
+            card.player_id == sc.player_id,
+            WorldXiError::AccountMismatch
+        );
 
         // --- Score calculation: rarity bonus, then captain multiplier ---
         let base = sc.raw_points as i128;
@@ -178,9 +194,14 @@ pub fn handler(ctx: Context<SettleSquadMatchday>, matchday: u16) -> Result<()> {
             .checked_add(final_i64)
             .ok_or(WorldXiError::Overflow)?;
         if sc.was_mvp {
-            card.mvp_count = card.mvp_count.checked_add(1).ok_or(WorldXiError::Overflow)?;
+            card.mvp_count = card
+                .mvp_count
+                .checked_add(1)
+                .ok_or(WorldXiError::Overflow)?;
         }
-        let final_i32 = i32::try_from(final_pts).map_err(|_| WorldXiError::Overflow)?;
+        // Clamp into i32 range (best_single_score is i32) instead of reverting the whole
+        // settle on an unusually large score.
+        let final_i32 = final_pts.clamp(i32::MIN as i128, i32::MAX as i128) as i32;
         if final_i32 > card.best_single_score {
             card.best_single_score = final_i32;
         }
@@ -197,7 +218,9 @@ pub fn handler(ctx: Context<SettleSquadMatchday>, matchday: u16) -> Result<()> {
         .total_points
         .checked_add(total_i64)
         .ok_or(WorldXiError::Overflow)?;
-    squad.locked_matchday = matchday;
+    // Track the highest settled matchday (informational). Idempotency comes from the
+    // SquadSnapshot PDA, so this must not decrease when matchdays settle out of order.
+    squad.locked_matchday = matchday.max(squad.locked_matchday);
 
     let profile = &mut ctx.accounts.profile;
     profile.total_points = profile

@@ -894,6 +894,36 @@ export type Worldxi = {
           "writable": true
         },
         {
+          "name": "winnerProfile",
+          "docs": [
+            "The winner's on-chain profile. This ties the payout to a REAL, participating user",
+            "(a profile that exists, is owned by `winner`, and has a positive score) rather than",
+            "an arbitrary address the authority names. NOTE: the authority still picks among",
+            "eligible users; a fully trustless \"highest score wins\" payout would require the",
+            "leaderboard to live on-chain (out of scope here). This is defense-in-depth."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "winner"
+              }
+            ]
+          }
+        },
+        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
@@ -987,7 +1017,7 @@ export type Worldxi = {
         {
           "name": "crank",
           "docs": [
-            "Fee payer; permissionless (whoever pays settles)."
+            "Fee payer AND authority: only the tournament oracle may settle a squad's matchday."
           ],
           "writable": true,
           "signer": true

@@ -45,7 +45,10 @@ pub fn handler(
     name: String,
 ) -> Result<()> {
     require!(!name.is_empty(), WorldXiError::InvalidArgument);
-    require!(name.len() <= MAX_LEAGUE_NAME_LEN, WorldXiError::InvalidArgument);
+    require!(
+        name.len() <= MAX_LEAGUE_NAME_LEN,
+        WorldXiError::InvalidArgument
+    );
 
     let league = &mut ctx.accounts.league;
     league.tournament = ctx.accounts.tournament.key();

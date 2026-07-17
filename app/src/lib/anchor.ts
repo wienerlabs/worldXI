@@ -54,7 +54,11 @@ export function generateLeagueCode(): string {
 }
 /** 6-char code -> [u8; 6] bytes for the PDA seed / instruction argument. */
 function codeBytes(code: string): Uint8Array {
-  return enc.encode(code.toUpperCase().padEnd(6, "X").slice(0, 6));
+  const bytes = enc.encode(code.toUpperCase().padEnd(6, "X").slice(0, 6));
+  // Non-ASCII input encodes to more than one byte per character, which would
+  // silently produce a wrong-length PDA seed. Require exactly 6 bytes.
+  if (bytes.length !== 6) throw new Error("Invalid league code: must be 6 ASCII characters");
+  return bytes;
 }
 
 /** Creates a private friend league; the creator becomes its first member. Returns the league pubkey. */

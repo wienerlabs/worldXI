@@ -87,13 +87,16 @@ export class Orchestrator {
     const target = norm(name);
     if (!target) return null;
     const targetLast = target.split(" ").pop() as string;
-    let lastMatch: number | null = null;
+    // Exact full-name match wins. The last-name fallback is accepted ONLY when it is
+    // unambiguous across the whole universe (exactly one player has that surname);
+    // a shared surname (Silva, Nunez, Gomez) would otherwise mis-attribute the goal.
+    const lastMatches: number[] = [];
     for (const [id, p] of this.state.universe) {
       const pn = norm(p.name);
       if (pn === target) return id;
-      if (lastMatch == null && pn.split(" ").pop() === targetLast) lastMatch = id;
+      if (pn.split(" ").pop() === targetLast) lastMatches.push(id);
     }
-    return lastMatch;
+    return lastMatches.length === 1 ? lastMatches[0] ?? null : null;
   }
 
   /** Builds goal celebration events for a fixture and broadcasts only the new ones
@@ -196,7 +199,7 @@ export class Orchestrator {
 
     for (const md of matchdays) {
       if (signal.aborted) return;
-      await this.committer.setMatchday(md, true).catch((e) => logger.debug("setMatchday(lock)", { error: errorMessage(e) }));
+      await this.committer.setMatchday(md, true).catch((e) => logger.warn("setMatchday(lock) failed", { error: errorMessage(e) }));
       this.state.activeMatchday = md;
 
       const commits: Array<{ matchday: number; playerId: number; rawPoints: number; wasMvp: boolean }> = [];
@@ -211,12 +214,14 @@ export class Orchestrator {
         try {
           await this.committer.commitScoreBatch(commits.slice(i, i + COMMIT_BATCH));
         } catch (e: unknown) {
-          logger.debug("commit batch skipped", { error: errorMessage(e) });
+          logger.warn("commit batch failed", { matchday: md, error: errorMessage(e) });
         }
         await sleep(COMMIT_THROTTLE_MS);
       }
 
-      await this.committer.setMatchday(md, false).catch(() => undefined);
+      await this.committer
+        .setMatchday(md, false)
+        .catch((e) => logger.warn("setMatchday(unlock) failed", { matchday: md, error: errorMessage(e) }));
       logger.info("matchday replay done", { matchday: md, players: commits.length });
       await sleep(REPLAY_STEP_MS);
     }
@@ -270,7 +275,7 @@ export class Orchestrator {
           try {
             await this.committer.commitScoreBatch(commits.slice(i, i + COMMIT_BATCH));
           } catch (e: unknown) {
-            logger.debug("live commit batch skipped", { error: errorMessage(e) });
+            logger.warn("live commit batch failed", { matchday: b.matchday, error: errorMessage(e) });
           }
           await sleep(COMMIT_THROTTLE_MS);
         }

@@ -36,8 +36,14 @@ interface SummaryResponse {
   }>;
 }
 
+/** Max plausible count for any per-player, per-match stat. Bounds a corrupt or spoofed feed
+ *  so it cannot inject absurd values that would inflate the points committed on-chain. */
+const MAX_STAT = 20;
+
 function stat(stats: Array<{ name?: string; value?: number }> | undefined, name: string): number {
-  return Number(stats?.find((s) => s.name === name)?.value ?? 0);
+  const raw = Number(stats?.find((s) => s.name === name)?.value ?? 0);
+  if (!Number.isFinite(raw) || raw <= 0) return 0;
+  return Math.min(Math.floor(raw), MAX_STAT);
 }
 
 /**

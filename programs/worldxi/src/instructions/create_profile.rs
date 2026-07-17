@@ -28,10 +28,14 @@ pub fn handler(
     nickname: String,
     country_code: Option<[u8; ISO_LEN]>,
 ) -> Result<()> {
+    // Byte length bounds the account's reserved space (not character count); a multibyte
+    // 24-char nickname is intentionally rejected here to avoid overrunning INIT_SPACE.
     require!(
         nickname.len() <= MAX_NICKNAME_LEN,
         WorldXiError::NicknameTooLong
     );
+    // Reject an empty/whitespace-only nickname.
+    require!(!nickname.trim().is_empty(), WorldXiError::InvalidArgument);
 
     let profile = &mut ctx.accounts.profile;
     profile.owner = ctx.accounts.owner.key();
