@@ -120,7 +120,16 @@ export async function mintPlayerCards(program: Program<Worldxi>, owner: PublicKe
       batch.map((id) =>
         program.methods
           .createPlayerCard(id, PublicKey.default)
-          .accountsPartial({ tournament: t, player: playerPda(t, id), owner, systemProgram: SystemProgram.programId })
+          // `card` is passed explicitly: Anchor cannot derive this PDA on its own here
+          // (its seeds mix account keys with an instruction argument), and leaving it to
+          // automatic resolution fails with "Reached maximum depth for account resolution".
+          .accountsPartial({
+            tournament: t,
+            player: playerPda(t, id),
+            card: cardPda(t, owner, id),
+            owner,
+            systemProgram: SystemProgram.programId,
+          })
           .instruction()
       )
     );
