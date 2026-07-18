@@ -4,6 +4,7 @@
  * State is shared between the orchestrator (writer) and the API (reader); on every update
  * a live tick is broadcast to the frontend over WS.
  */
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { loadConfig } from "./config.js";
 import { logger, errorMessage } from "./logger.js";
@@ -16,7 +17,19 @@ import { Orchestrator } from "./orchestrator.js";
 import { startApiServer } from "./api/server.js";
 import { loadEspnHistory } from "./espn/history.js";
 
-const DATA_DIR = resolve(process.cwd(), "..", "data");
+/**
+ * Dataset location. A cloud host that treats `oracle/` as the project root (Railway) never
+ * ships the repo-level `../data`, so look inside the package first and fall back to the
+ * repo layout used in local development. DATA_DIR overrides both.
+ */
+function resolveDataDir(): string {
+  const override = process.env.DATA_DIR;
+  if (override) return resolve(override);
+  const local = resolve(process.cwd(), "data");
+  return existsSync(local) ? local : resolve(process.cwd(), "..", "data");
+}
+
+const DATA_DIR = resolveDataDir();
 
 /** Computes tournament history from the REAL ESPN box score (id-based) and loads it
  *  into state. Fast, RPC-independent in-memory leaderboard/player-breakdown view. */

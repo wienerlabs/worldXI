@@ -1,0 +1,386 @@
+[
+  {
+    "countryNameTr": "Arjantin",
+    "countryNameEn": "Argentina",
+    "isoCode": "ARG",
+    "primaryColor": "#6CACE4",
+    "secondaryColor": "#0F3B82",
+    "flagEmoji": "🇦🇷"
+  },
+  {
+    "countryNameTr": "Avustralya",
+    "countryNameEn": "Australia",
+    "isoCode": "AUS",
+    "primaryColor": "#FFCD00",
+    "secondaryColor": "#00843D",
+    "flagEmoji": "🇦🇺"
+  },
+  {
+    "countryNameTr": "Avusturya",
+    "countryNameEn": "Austria",
+    "isoCode": "AUT",
+    "primaryColor": "#ED2939",
+    "secondaryColor": "#ffffff",
+    "flagEmoji": "🇦🇹"
+  },
+  {
+    "countryNameTr": "Belçika",
+    "countryNameEn": "Belgium",
+    "isoCode": "BEL",
+    "primaryColor": "#E30613",
+    "secondaryColor": "#111111",
+    "flagEmoji": "🇧🇪"
+  },
+  {
+    "countryNameTr": "Bosna Hersek",
+    "countryNameEn": "Bosnia and Herzegovina",
+    "isoCode": "BIH",
+    "primaryColor": "#002F6C",
+    "secondaryColor": "#FFCE00",
+    "flagEmoji": "🇧🇦"
+  },
+  {
+    "countryNameTr": "Brezilya",
+    "countryNameEn": "Brazil",
+    "isoCode": "BRA",
+    "primaryColor": "#FEDF00",
+    "secondaryColor": "#009739",
+    "flagEmoji": "🇧🇷"
+  },
+  {
+    "countryNameTr": "Kanada",
+    "countryNameEn": "Canada",
+    "isoCode": "CAN",
+    "primaryColor": "#D80621",
+    "secondaryColor": "#ffffff",
+    "flagEmoji": "🇨🇦"
+  },
+  {
+    "countryNameTr": "İsviçre",
+    "countryNameEn": "Switzerland",
+    "isoCode": "CHE",
+    "primaryColor": "#D52B1E",
+    "secondaryColor": "#ffffff",
+    "flagEmoji": "🇨🇭"
+  },
+  {
+    "countryNameTr": "Fildişi Sahili",
+    "countryNameEn": "Cote d'Ivoire",
+    "isoCode": "CIV",
+    "primaryColor": "#FF8200",
+    "secondaryColor": "#009543",
+    "flagEmoji": "🇨🇮"
+  },
+  {
+    "countryNameTr": "Kongo - Kinşasa",
+    "countryNameEn": "Democratic Republic of the Congo",
+    "isoCode": "COD",
+    "primaryColor": "#007FFF",
+    "secondaryColor": "#F7D618",
+    "flagEmoji": "🇨🇩"
+  },
+  {
+    "countryNameTr": "Kolombiya",
+    "countryNameEn": "Colombia",
+    "isoCode": "COL",
+    "primaryColor": "#FCD116",
+    "secondaryColor": "#00338D",
+    "flagEmoji": "🇨🇴"
+  },
+  {
+    "countryNameTr": "Cape Verde",
+    "countryNameEn": "Cape Verde",
+    "isoCode": "CPV",
+    "primaryColor": "#003893",
+    "secondaryColor": "#CF2027",
+    "flagEmoji": "🇨🇻"
+  },
+  {
+    "countryNameTr": "Curaçao",
+    "countryNameEn": "Curaçao",
+    "isoCode": "CUW",
+    "primaryColor": "#002B7F",
+    "secondaryColor": "#F9E814",
+    "flagEmoji": "🇨🇼"
+  },
+  {
+    "countryNameTr": "Çek Cumhuriyeti",
+    "countryNameEn": "Czech Republic",
+    "isoCode": "CZE",
+    "primaryColor": "#D7141A",
+    "secondaryColor": "#11457E",
+    "flagEmoji": "🇨🇿"
+  },
+  {
+    "countryNameTr": "Almanya",
+    "countryNameEn": "Germany",
+    "isoCode": "DEU",
+    "primaryColor": "#111111",
+    "secondaryColor": "#D8B65C",
+    "flagEmoji": "🇩🇪"
+  },
+  {
+    "countryNameTr": "Cezayir",
+    "countryNameEn": "Algeria",
+    "isoCode": "DZA",
+    "primaryColor": "#006233",
+    "secondaryColor": "#ffffff",
+    "flagEmoji": "🇩🇿"
+  },
+  {
+    "countryNameTr": "Ekvador",
+    "countryNameEn": "Ecuador",
+    "isoCode": "ECU",
+    "primaryColor": "#FFD700",
+    "secondaryColor": "#0A3D91",
+    "flagEmoji": "🇪🇨"
+  },
+  {
+    "countryNameTr": "Mısır",
+    "countryNameEn": "Egypt",
+    "isoCode": "EGY",
+    "primaryColor": "#CE1126",
+    "secondaryColor": "#111111",
+    "flagEmoji": "🇪🇬"
+  },
+  {
+    "countryNameTr": "İngiltere",
+    "countryNameEn": "England",
+    "isoCode": "ENG",
+    "primaryColor": "#ffffff",
+    "secondaryColor": "#CE1124",
+    "flagEmoji": "🏴󠁧󠁢󠁥󠁮󠁧󠁿"
+  },
+  {
+    "countryNameTr": "İspanya",
+    "countryNameEn": "Spain",
+    "isoCode": "ESP",
+    "primaryColor": "#C60B1E",
+    "secondaryColor": "#FFC400",
+    "flagEmoji": "🇪🇸"
+  },
+  {
+    "countryNameTr": "Fransa",
+    "countryNameEn": "France",
+    "isoCode": "FRA",
+    "primaryColor": "#0B2265",
+    "secondaryColor": "#E30613",
+    "flagEmoji": "🇫🇷"
+  },
+  {
+    "countryNameTr": "Gana",
+    "countryNameEn": "Ghana",
+    "isoCode": "GHA",
+    "primaryColor": "#111111",
+    "secondaryColor": "#FCD116",
+    "flagEmoji": "🇬🇭"
+  },
+  {
+    "countryNameTr": "Hırvatistan",
+    "countryNameEn": "Croatia",
+    "isoCode": "HRV",
+    "primaryColor": "#E32219",
+    "secondaryColor": "#0F3B82",
+    "flagEmoji": "🇭🇷"
+  },
+  {
+    "countryNameTr": "Haiti",
+    "countryNameEn": "Haiti",
+    "isoCode": "HTI",
+    "primaryColor": "#00209F",
+    "secondaryColor": "#D21034",
+    "flagEmoji": "🇭🇹"
+  },
+  {
+    "countryNameTr": "İran",
+    "countryNameEn": "Islamic Republic of Iran",
+    "isoCode": "IRN",
+    "primaryColor": "#ffffff",
+    "secondaryColor": "#239F40",
+    "flagEmoji": "🇮🇷"
+  },
+  {
+    "countryNameTr": "Irak",
+    "countryNameEn": "Iraq",
+    "isoCode": "IRQ",
+    "primaryColor": "#007A3D",
+    "secondaryColor": "#ffffff",
+    "flagEmoji": "🇮🇶"
+  },
+  {
+    "countryNameTr": "Ürdün",
+    "countryNameEn": "Jordan",
+    "isoCode": "JOR",
+    "primaryColor": "#CE1126",
+    "secondaryColor": "#111111",
+    "flagEmoji": "🇯🇴"
+  },
+  {
+    "countryNameTr": "Japonya",
+    "countryNameEn": "Japan",
+    "isoCode": "JPN",
+    "primaryColor": "#0B1F66",
+    "secondaryColor": "#ffffff",
+    "flagEmoji": "🇯🇵"
+  },
+  {
+    "countryNameTr": "Güney Kore",
+    "countryNameEn": "South Korea",
+    "isoCode": "KOR",
+    "primaryColor": "#C7132E",
+    "secondaryColor": "#0A2B5E",
+    "flagEmoji": "🇰🇷"
+  },
+  {
+    "countryNameTr": "Fas",
+    "countryNameEn": "Morocco",
+    "isoCode": "MAR",
+    "primaryColor": "#C1272D",
+    "secondaryColor": "#006233",
+    "flagEmoji": "🇲🇦"
+  },
+  {
+    "countryNameTr": "Meksika",
+    "countryNameEn": "Mexico",
+    "isoCode": "MEX",
+    "primaryColor": "#006847",
+    "secondaryColor": "#CE1126",
+    "flagEmoji": "🇲🇽"
+  },
+  {
+    "countryNameTr": "Hollanda",
+    "countryNameEn": "Netherlands",
+    "isoCode": "NLD",
+    "primaryColor": "#F36C21",
+    "secondaryColor": "#111111",
+    "flagEmoji": "🇳🇱"
+  },
+  {
+    "countryNameTr": "Norveç",
+    "countryNameEn": "Norway",
+    "isoCode": "NOR",
+    "primaryColor": "#BA0C2F",
+    "secondaryColor": "#00205B",
+    "flagEmoji": "🇳🇴"
+  },
+  {
+    "countryNameTr": "Yeni Zelanda",
+    "countryNameEn": "New Zealand",
+    "isoCode": "NZL",
+    "primaryColor": "#111111",
+    "secondaryColor": "#ffffff",
+    "flagEmoji": "🇳🇿"
+  },
+  {
+    "countryNameTr": "Panama",
+    "countryNameEn": "Panama",
+    "isoCode": "PAN",
+    "primaryColor": "#DA121A",
+    "secondaryColor": "#072357",
+    "flagEmoji": "🇵🇦"
+  },
+  {
+    "countryNameTr": "Portekiz",
+    "countryNameEn": "Portugal",
+    "isoCode": "PRT",
+    "primaryColor": "#C8102E",
+    "secondaryColor": "#046A38",
+    "flagEmoji": "🇵🇹"
+  },
+  {
+    "countryNameTr": "Paraguay",
+    "countryNameEn": "Paraguay",
+    "isoCode": "PRY",
+    "primaryColor": "#D52B1E",
+    "secondaryColor": "#0038A8",
+    "flagEmoji": "🇵🇾"
+  },
+  {
+    "countryNameTr": "Katar",
+    "countryNameEn": "Qatar",
+    "isoCode": "QAT",
+    "primaryColor": "#8A1538",
+    "secondaryColor": "#ffffff",
+    "flagEmoji": "🇶🇦"
+  },
+  {
+    "countryNameTr": "Suudi Arabistan",
+    "countryNameEn": "Saudi Arabia",
+    "isoCode": "SAU",
+    "primaryColor": "#006C35",
+    "secondaryColor": "#ffffff",
+    "flagEmoji": "🇸🇦"
+  },
+  {
+    "countryNameTr": "İskoçya",
+    "countryNameEn": "Scotland",
+    "isoCode": "SCO",
+    "primaryColor": "#005EB8",
+    "secondaryColor": "#ffffff",
+    "flagEmoji": "🏴󠁧󠁢󠁳󠁣󠁴󠁿"
+  },
+  {
+    "countryNameTr": "Senegal",
+    "countryNameEn": "Senegal",
+    "isoCode": "SEN",
+    "primaryColor": "#00853F",
+    "secondaryColor": "#FDEF42",
+    "flagEmoji": "🇸🇳"
+  },
+  {
+    "countryNameTr": "İsveç",
+    "countryNameEn": "Sweden",
+    "isoCode": "SWE",
+    "primaryColor": "#FECC02",
+    "secondaryColor": "#006AA7",
+    "flagEmoji": "🇸🇪"
+  },
+  {
+    "countryNameTr": "Tunus",
+    "countryNameEn": "Tunisia",
+    "isoCode": "TUN",
+    "primaryColor": "#E70013",
+    "secondaryColor": "#ffffff",
+    "flagEmoji": "🇹🇳"
+  },
+  {
+    "countryNameTr": "Türkiye",
+    "countryNameEn": "Türkiye",
+    "isoCode": "TUR",
+    "primaryColor": "#E30A17",
+    "secondaryColor": "#ffffff",
+    "flagEmoji": "🇹🇷"
+  },
+  {
+    "countryNameTr": "Uruguay",
+    "countryNameEn": "Uruguay",
+    "isoCode": "URY",
+    "primaryColor": "#4C9DD1",
+    "secondaryColor": "#111111",
+    "flagEmoji": "🇺🇾"
+  },
+  {
+    "countryNameTr": "ABD",
+    "countryNameEn": "United States of America",
+    "isoCode": "USA",
+    "primaryColor": "#0A3161",
+    "secondaryColor": "#B31942",
+    "flagEmoji": "🇺🇸"
+  },
+  {
+    "countryNameTr": "Özbekistan",
+    "countryNameEn": "Uzbekistan",
+    "isoCode": "UZB",
+    "primaryColor": "#0099B5",
+    "secondaryColor": "#ffffff",
+    "flagEmoji": "🇺🇿"
+  },
+  {
+    "countryNameTr": "Güney Afrika",
+    "countryNameEn": "South Africa",
+    "isoCode": "ZAF",
+    "primaryColor": "#007A4D",
+    "secondaryColor": "#FFB612",
+    "flagEmoji": "🇿🇦"
+  }
+]
