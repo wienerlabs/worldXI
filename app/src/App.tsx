@@ -51,7 +51,7 @@ export function App() {
         <header className="broadcast-bar">
           <div className="broadcast-inner">
             <NavLink to="/" className="brand" aria-label="WorldXI home">
-              <span className="brand-mark">W</span>
+              <img className="brand-logo" src="/logo.png" alt="" width={38} height={38} />
               <span className="brand-name">World<span className="x">XI</span></span>
             </NavLink>
             <nav className="nav" data-open={open} style={{ flex: 1 }}>
@@ -104,7 +104,7 @@ function SiteFooter() {
       <div className="container" style={{ padding: "42px 26px 34px", display: "flex", justifyContent: "space-between", gap: 24, flexWrap: "wrap", alignItems: "flex-end" }}>
         <div>
           <div className="brand" style={{ marginBottom: 10 }}>
-            <span className="brand-mark">W</span>
+            <img className="brand-logo" src="/logo.png" alt="" width={38} height={38} />
             <span className="brand-name">World<span className="x">XI</span></span>
           </div>
           <p className="muted" style={{ fontSize: 13, maxWidth: 320 }}>
