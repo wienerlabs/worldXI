@@ -19,6 +19,7 @@
     "photos:apifootball": "tsx src/scripts/apifootball-photos.ts",
     "photos:fix": "tsx src/scripts/fix-photos.ts",
     "register": "tsx src/scripts/register-players.ts",
+    "reset-user": "tsx src/scripts/reset-user.ts",
     "backfill": "tsx src/scripts/backfill-scores.ts",
     "orchestrate": "tsx src/index.ts",
     "backfill:settle": "tsx src/scripts/settle-matchday.ts",

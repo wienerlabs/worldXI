@@ -146,4 +146,24 @@ pub mod worldxi {
     pub fn join_friend_league(ctx: Context<JoinFriendLeague>) -> Result<()> {
         instructions::join_friend_league::handler(ctx)
     }
+
+    /// Closes the caller's own squad and refunds its rent.
+    pub fn close_squad(ctx: Context<CloseSquad>) -> Result<()> {
+        instructions::close_accounts::close_squad(ctx)
+    }
+
+    /// Closes one of the caller's own player cards and refunds its rent.
+    pub fn close_player_card(ctx: Context<ClosePlayerCard>) -> Result<()> {
+        instructions::close_accounts::close_player_card(ctx)
+    }
+
+    /// Closes one of the caller's own matchday snapshots and refunds its rent.
+    pub fn close_squad_snapshot(ctx: Context<CloseSquadSnapshot>) -> Result<()> {
+        instructions::close_accounts::close_squad_snapshot(ctx)
+    }
+
+    /// Closes the caller's own profile and refunds its rent.
+    pub fn close_profile(ctx: Context<CloseProfile>) -> Result<()> {
+        instructions::close_accounts::close_profile(ctx)
+    }
 }

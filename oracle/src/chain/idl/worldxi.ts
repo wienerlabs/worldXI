@@ -14,6 +14,130 @@ export type Worldxi = {
   },
   "instructions": [
     {
+      "name": "closePlayerCard",
+      "docs": [
+        "Closes one of the caller's own player cards and refunds its rent."
+      ],
+      "discriminator": [
+        151,
+        59,
+        96,
+        60,
+        29,
+        128,
+        232,
+        210
+      ],
+      "accounts": [
+        {
+          "name": "card",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "card"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "closeProfile",
+      "docs": [
+        "Closes the caller's own profile and refunds its rent."
+      ],
+      "discriminator": [
+        167,
+        36,
+        181,
+        8,
+        136,
+        158,
+        46,
+        207
+      ],
+      "accounts": [
+        {
+          "name": "profile",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "profile"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "closeSquad",
+      "docs": [
+        "Closes the caller's own squad and refunds its rent."
+      ],
+      "discriminator": [
+        76,
+        46,
+        206,
+        188,
+        69,
+        120,
+        77,
+        137
+      ],
+      "accounts": [
+        {
+          "name": "squad",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "squad"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "closeSquadSnapshot",
+      "docs": [
+        "Closes one of the caller's own matchday snapshots and refunds its rent."
+      ],
+      "discriminator": [
+        178,
+        51,
+        14,
+        61,
+        16,
+        55,
+        160,
+        20
+      ],
+      "accounts": [
+        {
+          "name": "snapshot",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "snapshot"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "commitScore",
       "docs": [
         "Oracle: writes/updates a player's raw matchday points live."
