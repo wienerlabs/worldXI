@@ -13,6 +13,8 @@ const CONFETTI_COLORS = ["#c6f24e", "#e8bd54", "#1f9d63", "#f3f1e7", "#f6d788"];
 const RAY_ANGLES = [-64, -48, -32, -16, 0, 16, 32, 48, 64];
 const RAY_COLORS = ["#c6f24e", "#e8bd54", "#1f9d63"];
 const SHOW_MS = 6500;
+/** A goal this recent is still celebrated when the page loads (covers reloads mid-match). */
+const FRESH_GOAL_MS = 180_000;
 
 export function GoalCelebration() {
   const [queue, setQueue] = useState<LiveGoal[]>([]);
@@ -46,9 +48,19 @@ export function GoalCelebration() {
       ws.onerror = () => ws?.close();
     };
 
-    // Mark all existing goals as already-seen so old goals never re-trigger; then listen live.
+    // Existing goals are marked as seen so old ones never re-trigger. Goals scored in the last
+    // few minutes are still celebrated though: otherwise reloading the page mid-match (or a
+    // brief WS drop) silently swallows a goal that just happened.
     fetchLiveGoals()
-      .then((gs) => gs.forEach((g) => seen.add(g.id)))
+      .then((gs) => {
+        const now = Date.now();
+        const fresh: LiveGoal[] = [];
+        for (const g of gs) {
+          seen.add(g.id);
+          if (now - g.ts < FRESH_GOAL_MS) fresh.push(g);
+        }
+        if (fresh.length > 0) setQueue((q) => [...q, ...fresh].slice(-4));
+      })
       .catch(() => undefined)
       .finally(connect);
 
