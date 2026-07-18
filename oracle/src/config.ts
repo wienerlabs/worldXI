@@ -55,7 +55,11 @@ let cached: Config | null = null;
 
 export function loadConfig(): Config {
   if (cached) return cached;
-  const parsed = schema.safeParse(process.env);
+  // Managed hosts (Railway, Render, Fly) assign the port to listen on via PORT, and it is
+  // dynamic. Fall back to it when API_PORT is not set explicitly, otherwise the service
+  // binds the wrong port and stays unreachable. An explicit API_PORT still wins locally.
+  const env = { ...process.env, API_PORT: process.env.API_PORT ?? process.env.PORT };
+  const parsed = schema.safeParse(env);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
     throw new Error(`Invalid configuration: ${issues}`);
