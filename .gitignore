@@ -32,6 +32,6 @@ wallets
 scratchpad
 worldcup.png
 
-# Frontend build artifacts (copied from data/ by the copy-data script)
-app/public/players.json
-app/public/countries.json
+# NOTE: app/public/players.json and countries.json are intentionally COMMITTED.
+# The copy-data script refreshes them from data/ during local dev, but committing them
+# means a cloud build (Vercel) never depends on reaching ../data outside its root dir.
