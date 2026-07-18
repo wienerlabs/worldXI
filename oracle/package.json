@@ -6,7 +6,7 @@
   "type": "module",
   "main": "dist/index.js",
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "scripts": {
     "sync-idl": "cp ../target/idl/worldxi.json src/chain/idl/worldxi.json && cp ../target/types/worldxi.ts src/chain/idl/worldxi.ts",
