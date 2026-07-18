@@ -6,13 +6,12 @@
  * defined". This module must be imported before anything that touches those libraries,
  * so it is the first import in main.tsx.
  */
-import { Buffer } from "buffer";
+import { Buffer as NodeBuffer } from "buffer";
 
-declare global {
-  // eslint-disable-next-line no-var
-  var Buffer: typeof import("buffer").Buffer;
-}
+// Widen globalThis locally instead of declaring a global Buffer: declaring it would
+// reference the ambient Buffer type in its own annotation (TS2502).
+const globals = globalThis as typeof globalThis & { Buffer?: typeof NodeBuffer };
 
-if (typeof globalThis.Buffer === "undefined") {
-  globalThis.Buffer = Buffer;
+if (typeof globals.Buffer === "undefined") {
+  globals.Buffer = NodeBuffer;
 }
