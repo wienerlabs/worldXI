@@ -49,7 +49,7 @@ export const FORMATIONS: Record<string, { def: number; mid: number; fwd: number 
   F451: { def: 4, mid: 5, fwd: 1 },
 };
 
-export const BUDGET_SOL = 25;
+export const BUDGET_SOL = 35;
 export const MAX_PER_COUNTRY = 3;
 export const SQUAD_SIZE = 15;
 export const STARTERS_SIZE = 11;

@@ -22,7 +22,7 @@ interface SquadCtx {
   setCaptain: (id: number) => void;
   /** Set a custom budget (admin control). Values <= 0 reset to the default. */
   setBudget: (sol: number) => void;
-  /** Restore the default 25 SOL budget. */
+  /** Restore the default budget (BUDGET_SOL). */
   resetBudget: () => void;
   /** Swaps a bench player with a starter in the same position (moves into the starting 11). */
   swapToStarter: (benchId: number, starterOutId: number) => string | null;

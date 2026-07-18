@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useData } from "../lib/data";
 import { PlayerCard } from "../components/PlayerCard";
-import type { Player, Tier } from "../lib/types";
+import { BUDGET_SOL, type Player, type Tier } from "../lib/types";
 
 export function Home() {
   const { players, countries, countryByIso } = useData();
@@ -52,7 +52,7 @@ export function Home() {
               on the <span className="gold">chain</span>.
             </h1>
             <p className="rise muted" style={{ animationDelay: "0.2s", maxWidth: 500, marginTop: 22, fontSize: 17.5, lineHeight: 1.6 }}>
-              Build a national-team XI on a 25 SOL budget. Every goal, card and assist becomes
+              Build a national-team XI on a {BUDGET_SOL} SOL budget. Every goal, card and assist becomes
               fantasy points written to Solana <b className="gold" style={{ fontWeight: 800 }}>live, during the match</b> —
               and the leaderboard moves in real time.
             </p>
@@ -142,7 +142,7 @@ export function Home() {
         </div>
         <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 16 }}>
           <Step n={1} title="Connect wallet" body="Sign in with your Solana wallet and pick a manager name." />
-          <Step n={2} title="Build your XI" body="15 players, 25 SOL, max 3 per nation. Choose a formation and captain." />
+          <Step n={2} title="Build your XI" body={`15 players, ${BUDGET_SOL} SOL, max 3 per nation. Choose a formation and captain.`} />
           <Step n={3} title="Submit on-chain" body="Your squad is validated and stored on Solana; player cards are minted." />
           <Step n={4} title="Watch it live" body="Real match events score your players live. Climb the leaderboard." />
         </div>

@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useData } from "../lib/data";
 import { useSquad } from "../lib/squad";
 import { PlayerCard } from "../components/PlayerCard";
-import { FORMATIONS, type Country, type Player, type Position } from "../lib/types";
+import { BUDGET_SOL, FORMATIONS, type Country, type Player, type Position } from "../lib/types";
 
 export function PitchView() {
   const { countryByIso } = useData();
@@ -140,7 +140,7 @@ export function PitchView() {
             >
               Draft 15 players on a{" "}
               <b className="gold" style={{ fontWeight: 800 }}>
-                25 SOL
+                {BUDGET_SOL} SOL
               </b>{" "}
               budget, lock a formation and name your captain. Then watch them
               score live, on-chain.

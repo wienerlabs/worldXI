@@ -93,7 +93,7 @@ export function SquadBuilder() {
           Build your <span className="gold">XI</span>
         </h1>
         <p className="muted" style={{ maxWidth: 560, marginTop: 12, fontSize: 15.5 }}>
-          Assemble 15 footballers on a 25 SOL budget, max 3 per nation. Pick a formation, name a
+          Assemble 15 footballers on a {BUDGET_SOL} SOL budget, max 3 per nation. Pick a formation, name a
           captain, and lock it to Solana — cards mint on submit.
         </p>
       </div>

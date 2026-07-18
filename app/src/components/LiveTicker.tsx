@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchMatches, type MatchSummary } from "../lib/api";
+import { BUDGET_SOL } from "../lib/types";
 
 /**
  * Broadcast-style live score strip under the nav. Pulls the current day's matches
@@ -82,7 +83,7 @@ function TickItem({ m }: { m: MatchSummary }) {
 const FALLBACK = [
   { dot: "var(--volt)", text: "1,246 real World Cup footballers" },
   { dot: "var(--gold)", text: "Points settled live, on Solana" },
-  { dot: "var(--pitch)", text: "48 national teams · 25 SOL budget" },
+  { dot: "var(--pitch)", text: `48 national teams · ${BUDGET_SOL} SOL budget` },
   { dot: "var(--volt)", text: "Build your XI · captain scores 2×" },
   { dot: "var(--gold)", text: "Living cards accrue real on-chain history" },
   { dot: "var(--pitch)", text: "No entry fees · no risk · sponsor-funded prizes" },
