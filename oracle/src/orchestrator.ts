@@ -43,6 +43,12 @@ export class Orchestrator {
   private readonly fxById = new Map<number, TxFixture>();
   private readonly dirty = new Set<number>();
   private readonly espnCache = new Map<string, { data: EspnSummary; ts: number }>();
+  /** Fixture -> finished, filled in while scoring so finalization does not refetch. */
+  private readonly fixtureFinished = new Map<number, boolean>();
+  /** Matchday currently locked on chain, so the lock tx is not resent every cycle. */
+  private lockedMatchday: number | null = null;
+  /** Matchdays already unlocked and settled in this process. */
+  private readonly finalizedMatchdays = new Set<number>();
 
   constructor(
     private readonly cfg: Config,
@@ -262,6 +268,8 @@ export class Orchestrator {
       if (!b) continue;
       try {
         this.state.activeMatchday = b.matchday;
+        // A matchday in play locks squads on chain, so nobody can change a line-up mid-match.
+        await this.lockMatchday(b.matchday);
         const results = await this.processFixture(fixtureId, b.matchday);
         // RPC-friendly: batch + throttle instead of one-by-one. Thanks to the cache, after
         // the first round only CHANGED player points are sent (public RPC load drops).
@@ -281,9 +289,48 @@ export class Orchestrator {
         }
         // Refresh the API after each fixture (leaderboard moves live without waiting for on-chain).
         this.onUpdate?.();
+        // Once every fixture of this matchday is over, unlock it and write the final totals.
+        await this.finalizeMatchdayIfDone(b.matchday);
       } catch (error: unknown) {
         logger.error("could not process fixture", { fixtureId, error: errorMessage(error) });
       }
+    }
+  }
+
+  /** Locks the matchday on chain once (lineups frozen while it is being played). */
+  private async lockMatchday(matchday: number): Promise<void> {
+    if (this.lockedMatchday === matchday || this.finalizedMatchdays.has(matchday)) return;
+    try {
+      await this.committer.setMatchday(matchday, true);
+      this.lockedMatchday = matchday;
+    } catch (error: unknown) {
+      logger.warn("setMatchday(lock) failed", { matchday, error: errorMessage(error) });
+    }
+  }
+
+  /**
+   * When every fixture of a matchday has finished, unlocks it and settles all squads, so the
+   * live provisional score becomes a final, verifiable total on chain. Runs at most once per
+   * matchday per process; the per-matchday snapshot account makes a repeat harmless anyway.
+   */
+  private async finalizeMatchdayIfDone(matchday: number): Promise<void> {
+    if (this.finalizedMatchdays.has(matchday)) return;
+    const fixtures = this.bridged.filter((b) => b.matchday === matchday);
+    if (fixtures.length === 0) return;
+    if (!fixtures.every((f) => this.fixtureFinished.get(f.txFixtureId) === true)) return;
+
+    this.finalizedMatchdays.add(matchday);
+    logger.info("matchday finished, finalizing on chain", { matchday, fixtures: fixtures.length });
+    try {
+      // Settle requires the tournament to be unlocked, so this has to come first.
+      await this.committer.setMatchday(matchday, false);
+      this.lockedMatchday = null;
+      await this.committer.settleMatchday(matchday, this.state.universe);
+      this.onUpdate?.();
+    } catch (error: unknown) {
+      // Allow a later cycle to retry rather than leaving the matchday half finalized.
+      this.finalizedMatchdays.delete(matchday);
+      logger.error("matchday finalization failed", { matchday, error: errorMessage(error) });
     }
   }
 
@@ -304,6 +351,7 @@ export class Orchestrator {
     const maxStatusId = Math.max(0, ...snap.map((x) => x.StatusId ?? 0));
     const maxSecs = Math.max(0, ...snap.map((x) => x.Clock?.Seconds ?? 0));
     const finished = maxStatusId >= 100 || summary.status?.completed === true;
+    this.fixtureFinished.set(txFixtureId, finished);
     const elapsedMinutes = finished ? Math.max(90, Math.floor(maxSecs / 60)) : Math.floor(maxSecs / 60);
     const subs = summary.events
       .filter((e) => e.type === "substitution")

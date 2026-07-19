@@ -10,6 +10,7 @@
  */
 import { SystemProgram, Transaction, sendAndConfirmTransaction, type PublicKey } from "@solana/web3.js";
 import { logger, errorMessage } from "../logger.js";
+import type { PlayerUniverseEntry, Position } from "../domain.js";
 import {
   cardPda,
   playerPda,
@@ -154,5 +155,81 @@ export class Committer {
       .rpc();
     logger.info("settle_squad_matchday sent", { matchday, owner: owner.toBase58(), sig });
     return sig;
+  }
+  /**
+   * Settles a whole matchday on chain: every squad's final total is written, applying the
+   * rarity bonus and captain multiplier inside the program.
+   *
+   * For each squad the effective eleven is derived: a starter who did not play is replaced
+   * by a bench player in the same position who did. A player is only eligible if they have
+   * BOTH a score commit for this matchday and a PlayerCard, because settle reads both and a
+   * single missing account would fail the entire squad.
+   */
+  async settleMatchday(
+    matchday: number,
+    universe: Map<number, PlayerUniverseEntry>
+  ): Promise<{ settled: number; skipped: number }> {
+    const squads = await this.ctx.program.account.squad.all();
+    const positionOf = (id: number): Position => universe.get(id)?.position ?? "MID";
+    let settled = 0;
+    let skipped = 0;
+
+    for (const row of squads) {
+      const squad = row.account as unknown as {
+        owner: PublicKey;
+        players: number[];
+        starters: number[];
+        lockedMatchday: number;
+      };
+      const owner = squad.owner;
+      const starters = [...squad.starters];
+      const bench = squad.players.filter((p) => !starters.includes(p));
+      const candidates = [...new Set([...starters, ...bench])];
+
+      // One round trip: score commits first, then cards, in the same order as `candidates`.
+      const infos = await this.ctx.connection.getMultipleAccountsInfo([
+        ...candidates.map((id) => scorePda(this.ctx.programId, this.tournament, matchday, id)),
+        ...candidates.map((id) => cardPda(this.ctx.programId, this.tournament, owner, id)),
+      ]);
+      const eligible = new Set<number>();
+      candidates.forEach((id, i) => {
+        if (infos[i] && infos[candidates.length + i]) eligible.add(id);
+      });
+
+      const usedBench = new Set<number>();
+      const effective: number[] = [];
+      for (const sid of starters) {
+        if (eligible.has(sid)) {
+          effective.push(sid);
+          continue;
+        }
+        const pos = positionOf(sid);
+        const replacement = bench.find((b) => !usedBench.has(b) && positionOf(b) === pos && eligible.has(b));
+        if (replacement !== undefined) {
+          usedBench.add(replacement);
+          effective.push(replacement);
+        }
+        // Neither the starter nor a same-position substitute played: that slot scores nothing.
+      }
+
+      if (effective.length === 0) {
+        skipped++;
+        continue;
+      }
+      try {
+        await this.settleSquadMatchday(matchday, owner, effective);
+        settled++;
+      } catch (error: unknown) {
+        skipped++;
+        // Already settled (the snapshot account exists) is expected on a retry, not a failure.
+        logger.warn("settle skipped for squad", {
+          owner: owner.toBase58(),
+          matchday,
+          error: errorMessage(error),
+        });
+      }
+    }
+    logger.info("matchday settled on chain", { matchday, settled, skipped });
+    return { settled, skipped };
   }
 }
