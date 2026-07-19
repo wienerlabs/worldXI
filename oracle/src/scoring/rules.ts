@@ -49,15 +49,16 @@ function goalPoints(position: Position): number {
  * level and added via `applyMvp`.
  */
 /**
- * `finished` gates the two bonuses that only become true at full time. While a match is
- * running, minutes played and a clean sheet are not settled yet: a starter can be
- * substituted at 20 minutes, and a defence that has not conceded in the 5th minute has
- * earned nothing. Awarding them early inflated every starter and, worse, made scores go
- * DOWN when a goal was later conceded. Historic scoring passes finished = true.
+ * `finished` gates ONLY the clean sheet bonus. A clean sheet is revocable: not conceding by
+ * the 78th minute means nothing if a goal goes in at the 85th, so it must wait for full time,
+ * otherwise a manager would watch points go DOWN. The 60-minute bonus is different: once a
+ * player has been on the pitch for 60 minutes it can never be taken away, so it is awarded
+ * live as soon as the (real, substitution-aware) minutes reach the threshold. Historic
+ * scoring passes finished = true.
  */
 export function computeBreakdown(stat: MatchPlayerStat, finished = true): ScoreBreakdown {
   const appearance = stat.appeared ? POINTS.appearance : 0;
-  const minutes60 = finished && stat.minutesPlayed >= MINUTES_BONUS_THRESHOLD ? POINTS.minutes60 : 0;
+  const minutes60 = stat.minutesPlayed >= MINUTES_BONUS_THRESHOLD ? POINTS.minutes60 : 0;
   const goals = stat.goals * goalPoints(stat.position);
   const assists = stat.assists * POINTS.assist;
   const isDefensive = stat.position === "GK" || stat.position === "DEF";

@@ -63,19 +63,26 @@ test("applyMvp does not mutate and adds +3", () => {
   assert.equal(withMvp.total, b.total + 3);
 });
 
-test("live match: the 60-minute and clean sheet bonuses are withheld until full time", () => {
+test("live match: the 60-minute bonus counts live, the clean sheet waits for full time", () => {
   const s = stat({ position: "DEF", teamConcededGoals: 0, minutesPlayed: 90 });
   const live = computeBreakdown(s, false);
-  assert.equal(live.minutes60, 0);
-  assert.equal(live.cleanSheet, 0);
-  assert.equal(live.total, POINTS.appearance);
+  assert.equal(live.minutes60, POINTS.minutes60); // 60 min is unrevocable -> live
+  assert.equal(live.cleanSheet, 0); // clean sheet is revocable -> withheld
+  assert.equal(live.total, POINTS.appearance + POINTS.minutes60);
 
-  // Same player, once the match is over: both bonuses apply.
+  // Once the match is over, the clean sheet is added too.
   const full = computeBreakdown(s, true);
   assert.equal(full.total, POINTS.appearance + POINTS.minutes60 + POINTS.cleanSheet);
 });
 
+test("live match: a starter under 60 minutes does not get the minutes bonus yet", () => {
+  const b = computeBreakdown(stat({ position: "MID", minutesPlayed: 55, teamConcededGoals: 1 }), false);
+  assert.equal(b.minutes60, 0);
+  assert.equal(b.total, POINTS.appearance);
+});
+
 test("live match: a goal still counts immediately", () => {
-  const b = computeBreakdown(stat({ position: "FWD", goals: 1, teamConcededGoals: 1 }), false);
+  // 30 minutes so the 60-minute bonus is not involved: the goal is what adds the points.
+  const b = computeBreakdown(stat({ position: "FWD", goals: 1, minutesPlayed: 30, teamConcededGoals: 1 }), false);
   assert.equal(b.total, POINTS.appearance + POINTS.goalFwd);
 });
