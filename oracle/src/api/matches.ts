@@ -117,8 +117,12 @@ function summarize(
     // is used - the "most recent event" (max Seq) fluctuates. AUXILIARY ESPN: if TxLINE sends the
     // finish/halftime signal late (observed: StatusId=100 arrived ~minutes later,
     // "stuck at 101") it is confirmed with ESPN completed/halftime. Decision favors TxLINE first.
+    // ESPN gets a veto: if it still reports the match as "in", TxLINE's early "finished"
+    // (or the duration fallback) must not mark it over. Otherwise a live match in extra time
+    // would show Full time.
+    const espnSaysLive = espnStatus?.state === "in";
     const txFinished = maxStatusId >= 100 || now - fx.StartTime > MATCH_OVER_MS;
-    const finished = txFinished || espnStatus?.completed === true;
+    const finished = !espnSaysLive && (txFinished || espnStatus?.completed === true);
     const halftime = !finished && (maxStatusId === 3 || espnStatus?.halftime === true);
     // Minute: do not show at finish/halftime (avoid a frozen minute); while live, the highest match clock.
     const maxSecs = Math.max(0, ...snap.map((s) => s.Clock?.Seconds ?? 0));

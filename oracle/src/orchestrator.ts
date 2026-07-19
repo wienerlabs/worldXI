@@ -350,7 +350,11 @@ export class Orchestrator {
     const summary = await this.espnSummaryFor(b.espnEventId);
     const maxStatusId = Math.max(0, ...snap.map((x) => x.StatusId ?? 0));
     const maxSecs = Math.max(0, ...snap.map((x) => x.Clock?.Seconds ?? 0));
-    const finished = maxStatusId >= 100 || summary.status?.completed === true;
+    // ESPN gets a veto on finish. TxLINE's StatusId can flip to "finished" (>=100) during
+    // extra time while the match is still being played; trusting it alone would settle the
+    // matchday on chain too early. If ESPN still reports the match as "in", it is not over.
+    const espnSaysLive = summary.status?.state === "in";
+    const finished = !espnSaysLive && (maxStatusId >= 100 || summary.status?.completed === true);
     this.fixtureFinished.set(txFixtureId, finished);
     const elapsedMinutes = finished ? Math.max(90, Math.floor(maxSecs / 60)) : Math.floor(maxSecs / 60);
     const subs = summary.events
