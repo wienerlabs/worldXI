@@ -261,7 +261,21 @@ export class Orchestrator {
   }
 
   private async processDirty(): Promise<void> {
-    const ids = [...this.dirty];
+    const now = Date.now();
+    // Alongside the SSE-flagged fixtures, always re-check fixtures that kicked off in the last
+    // ~6 hours and are not finalized yet. When a match ends the TxLINE SSE goes quiet, and
+    // without this the final (bonus-inclusive) scoring and the on-chain settle would never
+    // fire. A fixture drops off this list once its matchday is finalized (the guard below),
+    // and this also recovers after a restart, when the SSE carries no events for a match
+    // that has already finished.
+    const recent = this.bridged
+      .filter((b) => !this.finalizedMatchdays.has(b.matchday))
+      .filter((b) => {
+        const fx = this.fxById.get(b.txFixtureId);
+        return fx !== undefined && now >= fx.StartTime && now - fx.StartTime < 6 * 3_600_000;
+      })
+      .map((b) => b.txFixtureId);
+    const ids = [...new Set([...this.dirty, ...recent])];
     this.dirty.clear();
     for (const fixtureId of ids) {
       const b = this.byTxId.get(fixtureId);
