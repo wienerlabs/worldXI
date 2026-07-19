@@ -63,3 +63,37 @@ test("scoreEspnMatch: player not in the universe is skipped", () => {
   const results = scoreEspnMatch(1000, bs, universe);
   assert.equal(results.length, 0);
 });
+
+test("minutes: a starter substituted off is credited only up to that minute", () => {
+  const universe = new Map([[1, entry(1, "MID")]]);
+  const bs = new Map([[1, box({ playerId: 1 })]]);
+  const r = scoreEspnMatch(1000, bs, universe, undefined, {
+    elapsedMinutes: 80,
+    finished: false,
+    subs: [{ inId: 2, outId: 1, minute: 55 }],
+  }).find((x) => x.playerId === 1);
+  assert.equal(r?.stat.minutesPlayed, 55);
+});
+
+test("minutes: a substitute is credited from the minute they came on", () => {
+  const universe = new Map([[2, entry(2, "FWD")]]);
+  const bs = new Map([[2, box({ playerId: 2, starter: false, subIn: true })]]);
+  const r = scoreEspnMatch(1000, bs, universe, undefined, {
+    elapsedMinutes: 80,
+    finished: false,
+    subs: [{ inId: 2, outId: 1, minute: 55 }],
+  }).find((x) => x.playerId === 2);
+  assert.equal(r?.stat.minutesPlayed, 25);
+});
+
+test("live match: a defender early on has only the appearance point", () => {
+  const universe = new Map([[1, entry(1, "DEF")]]);
+  const bs = new Map([[1, box({ playerId: 1, teamConcededGoals: 0 })]]);
+  const r = scoreEspnMatch(1000, bs, universe, undefined, {
+    elapsedMinutes: 5,
+    finished: false,
+    subs: [],
+  }).find((x) => x.playerId === 1);
+  assert.equal(r?.stat.minutesPlayed, 5);
+  assert.equal(r?.rawPoints, 1);
+});

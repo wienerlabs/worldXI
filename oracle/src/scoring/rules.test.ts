@@ -62,3 +62,20 @@ test("applyMvp does not mutate and adds +3", () => {
   assert.equal(withMvp.mvp, 3);
   assert.equal(withMvp.total, b.total + 3);
 });
+
+test("live match: the 60-minute and clean sheet bonuses are withheld until full time", () => {
+  const s = stat({ position: "DEF", teamConcededGoals: 0, minutesPlayed: 90 });
+  const live = computeBreakdown(s, false);
+  assert.equal(live.minutes60, 0);
+  assert.equal(live.cleanSheet, 0);
+  assert.equal(live.total, POINTS.appearance);
+
+  // Same player, once the match is over: both bonuses apply.
+  const full = computeBreakdown(s, true);
+  assert.equal(full.total, POINTS.appearance + POINTS.minutes60 + POINTS.cleanSheet);
+});
+
+test("live match: a goal still counts immediately", () => {
+  const b = computeBreakdown(stat({ position: "FWD", goals: 1, teamConcededGoals: 1 }), false);
+  assert.equal(b.total, POINTS.appearance + POINTS.goalFwd);
+});

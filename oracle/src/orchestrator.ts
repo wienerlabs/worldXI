@@ -297,7 +297,23 @@ export class Orchestrator {
     // TxLINE live event data (goal/card) - factor the core feed into scoring.
     const snap = await this.txline.getScoresSnapshot(txFixtureId).catch(() => []);
     const txEvents = snap.length > 0 ? extractTxlineEvents(snap, this.state.universe) : undefined;
-    const results = scoreEspnMatch(Number.parseInt(b.espnEventId, 10), box, this.state.universe, txEvents);
+
+    // Match clock and completion drive per-player minutes and gate the full-time bonuses.
+    // TxLINE is the primary clock/finish signal; ESPN confirms the finish when TxLINE is late.
+    const summary = await this.espnSummaryFor(b.espnEventId);
+    const maxStatusId = Math.max(0, ...snap.map((x) => x.StatusId ?? 0));
+    const maxSecs = Math.max(0, ...snap.map((x) => x.Clock?.Seconds ?? 0));
+    const finished = maxStatusId >= 100 || summary.status?.completed === true;
+    const elapsedMinutes = finished ? Math.max(90, Math.floor(maxSecs / 60)) : Math.floor(maxSecs / 60);
+    const subs = summary.events
+      .filter((e) => e.type === "substitution")
+      .map((e) => ({ inId: e.playerId, outId: e.secondaryPlayerId, minute: e.minute }));
+
+    const results = scoreEspnMatch(Number.parseInt(b.espnEventId, 10), box, this.state.universe, txEvents, {
+      elapsedMinutes,
+      finished,
+      subs,
+    });
     for (const r of results) this.state.upsertResult(matchday, r);
     // Goal celebration feed AFTER scores are upserted, so the scorer's points are current.
     await this.emitGoals(txFixtureId);

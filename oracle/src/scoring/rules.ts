@@ -48,14 +48,21 @@ function goalPoints(position: Position): number {
  * Computes the raw point breakdown excluding MVP. The MVP is determined at the match
  * level and added via `applyMvp`.
  */
-export function computeBreakdown(stat: MatchPlayerStat): ScoreBreakdown {
+/**
+ * `finished` gates the two bonuses that only become true at full time. While a match is
+ * running, minutes played and a clean sheet are not settled yet: a starter can be
+ * substituted at 20 minutes, and a defence that has not conceded in the 5th minute has
+ * earned nothing. Awarding them early inflated every starter and, worse, made scores go
+ * DOWN when a goal was later conceded. Historic scoring passes finished = true.
+ */
+export function computeBreakdown(stat: MatchPlayerStat, finished = true): ScoreBreakdown {
   const appearance = stat.appeared ? POINTS.appearance : 0;
-  const minutes60 = stat.minutesPlayed >= MINUTES_BONUS_THRESHOLD ? POINTS.minutes60 : 0;
+  const minutes60 = finished && stat.minutesPlayed >= MINUTES_BONUS_THRESHOLD ? POINTS.minutes60 : 0;
   const goals = stat.goals * goalPoints(stat.position);
   const assists = stat.assists * POINTS.assist;
   const isDefensive = stat.position === "GK" || stat.position === "DEF";
   const cleanSheet =
-    isDefensive && stat.teamConcededGoals === 0 && stat.minutesPlayed >= CLEAN_SHEET_MIN_MINUTES
+    finished && isDefensive && stat.teamConcededGoals === 0 && stat.minutesPlayed >= CLEAN_SHEET_MIN_MINUTES
       ? POINTS.cleanSheet
       : 0;
   const penaltySave = stat.penaltiesSaved * POINTS.penaltySave;
