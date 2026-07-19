@@ -6,6 +6,7 @@ import { useSquad } from "../lib/squad";
 import { BUDGET_SOL, FORMATIONS, type Position } from "../lib/types";
 import { getProgram, profilePda, submitSquad } from "../lib/anchor";
 import { isAdminWallet } from "../lib/admin";
+import { PromptModal } from "../components/PromptModal";
 
 const fmtBudget = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
@@ -26,6 +27,8 @@ export function SquadBuilder() {
   const [q, setQ] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [needProfile, setNeedProfile] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const pool = useMemo(() => {
     const picked = new Set(picks.map((p) => p.playerId));
@@ -40,6 +43,7 @@ export function SquadBuilder() {
   const over = remaining < 0;
   const budgetPct = Math.min(100, budget > 0 ? (spent / budget) * 100 : 0);
 
+  /** Validates the draft, then either asks for the first-time profile or submits straight away. */
   const onSubmit = async () => {
     if (!wallet.publicKey || !anchorWallet) { setMsg("Connect your wallet first."); return; }
     if (picks.length !== 15) { setMsg(`Select 15 players first (${picks.length}/15).`); return; }
@@ -48,22 +52,26 @@ export function SquadBuilder() {
       setMsg('Pick a captain: tap the gold "C" next to one of your starters.');
       return;
     }
+    setBusy(true); setMsg(null);
+    try {
+      // First squad? Collect the manager profile in-app first. It rides along in the same
+      // transaction as the squad, so the wallet only has to open once.
+      const prof = await connection.getAccountInfo(profilePda(wallet.publicKey));
+      if (!prof) { setNeedProfile(true); setBusy(false); return; }
+    } catch {
+      setMsg("Could not reach the network. Check your connection and retry.");
+      setBusy(false);
+      return;
+    }
+    await sendSquad();
+  };
+
+  /** Sends the squad on-chain. nickname/country are only passed on the very first submit. */
+  const sendSquad = async (nickname?: string, country?: string) => {
+    if (!wallet.publicKey || !anchorWallet) return;
     setBusy(true); setMsg("Preparing transaction… approve it in your wallet.");
     try {
       const program = getProgram(connection, anchorWallet);
-      // If the profile is being created for the first time, get a nickname; it is sent in the same transaction as submit.
-      const prof = await connection.getAccountInfo(profilePda(wallet.publicKey));
-      let nickname: string | undefined;
-      let country: string | undefined;
-      if (!prof) {
-        // Drop control characters, trim, and cap the nickname to a reasonable length.
-        const rawNick = window.prompt("First time - choose a manager nickname (max 24):") ?? "";
-        nickname = rawNick.replace(/[\u0000-\u001F\u007F]/g, "").trim().slice(0, 24) || undefined;
-        if (!nickname) { setMsg("A nickname is required for your first squad."); setBusy(false); return; }
-        // Optional: the country you joined (3-letter code, e.g. TUR). Letters only, uppercased.
-        const rawCountry = window.prompt("Optional - your country (3-letter code, e.g. TUR, FRA, BRA). Leave blank to skip:") ?? "";
-        country = rawCountry.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 3) || undefined;
-      }
       const sig = await submitSquad(program, wallet.publicKey, picks, starterIds, formation, captainId!, nickname, country);
       setMsg(`Squad submitted on-chain! Tx: ${sig.slice(0, 12)}… — taking you to your squad…`);
       // Sign complete → show the manager their line-up on the pitch.
@@ -293,7 +301,7 @@ export function SquadBuilder() {
                 <button
                   className="pill"
                   style={{ color: "var(--danger)", borderColor: "rgba(255,90,90,0.4)", cursor: "pointer" }}
-                  onClick={() => { if (window.confirm("Clear your whole squad and start over? This only resets your local picks.")) { clear(); setMsg("Squad cleared. Start building from scratch."); } }}
+                  onClick={() => setConfirmClear(true)}
                 >
                   Clear all
                 </button>
@@ -374,6 +382,42 @@ export function SquadBuilder() {
           .build-hud { position: static !important; }
         }
       `}</style>
+
+      {/* First squad only: collect the manager profile in-app instead of a browser prompt.
+          These values are sent in the same transaction as the squad. */}
+      {confirmClear && (
+        <PromptModal
+          eyebrow="Draft room"
+          title="Clear your squad?"
+          fields={[]}
+          hint="This removes the players you picked in this browser for the connected wallet. A squad already submitted on-chain is not affected."
+          submitLabel="Clear squad"
+          onSubmit={() => { setConfirmClear(false); clear(); setMsg("Squad cleared. Start building from scratch."); }}
+          onClose={() => setConfirmClear(false)}
+        />
+      )}
+
+      {needProfile && (
+        <PromptModal
+          eyebrow="Manager profile"
+          title="Name your manager"
+          fields={[
+            { name: "nickname", label: "Manager name", placeholder: "", maxLength: 24 },
+            { name: "country", label: "Country code (optional)", placeholder: "TUR", maxLength: 3, uppercase: true, optional: true },
+          ]}
+          hint="Created once, in the same transaction as your squad."
+          submitLabel="Submit squad"
+          onSubmit={(v) => {
+            setNeedProfile(false);
+            // Drop control characters and keep the on-chain limits.
+            const nickname = (v.nickname ?? "").replace(/[\u0000-\u001F\u007F]/g, "").trim().slice(0, 24);
+            const country = (v.country ?? "").replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 3);
+            if (!nickname) { setMsg("A nickname is required for your first squad."); return; }
+            void sendSquad(nickname, country || undefined);
+          }}
+          onClose={() => { setNeedProfile(false); setBusy(false); }}
+        />
+      )}
     </div>
   );
 }

@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { useData } from "../lib/data";
 import { useSquad } from "../lib/squad";
 import { PlayerCard } from "../components/PlayerCard";
+import { PromptModal } from "../components/PromptModal";
 import { BUDGET_SOL, FORMATIONS, type Country, type Player, type Position } from "../lib/types";
 
 export function PitchView() {
   const { countryByIso } = useData();
+  const { connected } = useWallet();
   const squad = useSquad();
   const { starters, bench, formation, captainId, spent, budget, budgetOverridden, clear } = squad;
   const [sel, setSel] = useState<Player | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [subFor, setSubFor] = useState<Player | null>(null);
   const [subOutFor, setSubOutFor] = useState<Player | null>(null);
   // Viewport width -> responsive pitch card size (formation always fits one row).
@@ -115,7 +119,7 @@ export function PitchView() {
           />
           <div style={{ position: "relative", zIndex: 1 }}>
             <div className="eyebrow" style={{ justifyContent: "center" }}>
-              No line-up on file
+              {connected ? "No line-up on file" : "Wallet not connected"}
             </div>
             <h1
               className="display"
@@ -138,12 +142,25 @@ export function PitchView() {
                 lineHeight: 1.6,
               }}
             >
-              Draft 15 players on a{" "}
-              <b className="gold" style={{ fontWeight: 800 }}>
-                {BUDGET_SOL} SOL
-              </b>{" "}
-              budget, lock a formation and name your captain. Then watch them
-              score live, on-chain.
+              {connected ? (
+                <>
+                  Draft 15 players on a{" "}
+                  <b className="gold" style={{ fontWeight: 800 }}>
+                    {BUDGET_SOL} SOL
+                  </b>{" "}
+                  budget, lock a formation and name your captain. Then watch them
+                  score live, on-chain.
+                </>
+              ) : (
+                <>
+                  Squads belong to a wallet. Connect one to see the line-up saved for it,
+                  or to start drafting your{" "}
+                  <b className="gold" style={{ fontWeight: 800 }}>
+                    XI
+                  </b>
+                  .
+                </>
+              )}
             </p>
             <div
               style={{
@@ -282,14 +299,7 @@ export function PitchView() {
           <button
             className="btn btn-ghost btn-sm"
             style={{ color: "var(--danger)", borderColor: "rgba(255,90,90,0.4)" }}
-            onClick={() => {
-              if (
-                window.confirm(
-                  "Reset your whole squad and start over? This clears your local picks."
-                )
-              )
-                clear();
-            }}
+            onClick={() => setConfirmReset(true)}
           >
             Reset
           </button>
@@ -539,6 +549,19 @@ export function PitchView() {
             squad.remove(sel.playerId);
             setSel(null);
           }}
+        />
+      )}
+
+      {/* Reset confirmation, in-app instead of the browser's native dialog. */}
+      {confirmReset && (
+        <PromptModal
+          eyebrow="My squad"
+          title="Reset your squad?"
+          fields={[]}
+          hint="This clears the 15 players you picked in this browser for the connected wallet. A squad already submitted on-chain is not affected."
+          submitLabel="Reset squad"
+          onSubmit={() => { setConfirmReset(false); clear(); }}
+          onClose={() => setConfirmReset(false)}
         />
       )}
     </div>

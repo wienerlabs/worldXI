@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAnchorWallet, useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { getProgram, createFriendLeague, joinFriendLeague, generateLeagueCode } from "../lib/anchor";
 import { fetchMyFriendLeagues, type FriendLeagueRow } from "../lib/api";
+import { PromptModal } from "./PromptModal";
 
 function errText(e: unknown): string {
   const raw = e instanceof Error ? e.message : String(e);
@@ -133,80 +134,26 @@ export function FriendLeaguesSection() {
 
       {modal === "create" && (
         <PromptModal
+          eyebrow="Friend league"
           title="Create a friend league"
-          label="League name"
-          placeholder="e.g. Sunday Legends"
+          fields={[{ name: "name", label: "League name", placeholder: "e.g. Sunday Legends", maxLength: 32 }]}
           hint="A 6-character invite code will be generated for you to share."
           submitLabel="Create league"
-          maxLength={32}
-          onSubmit={submitCreate}
+          onSubmit={(v) => submitCreate(v.name ?? "")}
           onClose={() => setModal(null)}
         />
       )}
       {modal === "join" && (
         <PromptModal
+          eyebrow="Friend league"
           title="Join a friend league"
-          label="Invite code"
-          placeholder="6-character code"
+          fields={[{ name: "code", label: "Invite code", placeholder: "6-character code", maxLength: 6, uppercase: true }]}
           hint="Ask the league owner for the code they shared."
           submitLabel="Join league"
-          maxLength={6}
-          uppercase
-          onSubmit={submitJoin}
+          onSubmit={(v) => submitJoin(v.code ?? "")}
           onClose={() => setModal(null)}
         />
       )}
     </section>
-  );
-}
-
-/** In-app modal styled to match the app, replacing the browser's native prompt. */
-function PromptModal({ title, label, placeholder, hint, submitLabel, maxLength, uppercase, onSubmit, onClose }: {
-  title: string; label: string; placeholder: string; hint?: string; submitLabel: string;
-  maxLength?: number; uppercase?: boolean; onSubmit: (v: string) => void; onClose: () => void;
-}): ReactNode {
-  const [value, setValue] = useState("");
-  const submit = () => { if (value.trim()) onSubmit(value); };
-  return (
-    <div
-      onClick={onClose}
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.66)", backdropFilter: "blur(3px)", display: "grid", placeItems: "center", zIndex: 200, padding: 20 }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="panel panel-notch rise"
-        style={{ width: "min(440px, 96vw)", padding: "26px 26px 22px", borderTop: "2px solid var(--volt)" }}
-      >
-        <div className="between" style={{ alignItems: "center", marginBottom: 6 }}>
-          <div className="eyebrow" style={{ color: "var(--volt)" }}>Friend league</div>
-          <button onClick={onClose} className="btn btn-outline" style={{ padding: "4px 10px", fontSize: 13 }}>x</button>
-        </div>
-        <h3 style={{ fontSize: 22, fontWeight: 900, letterSpacing: "-0.01em" }}>{title}</h3>
-
-        <label className="mono" style={{ display: "block", fontSize: 10.5, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--muted)", margin: "20px 0 8px" }}>
-          {label}
-        </label>
-        <input
-          autoFocus
-          value={value}
-          maxLength={maxLength}
-          placeholder={placeholder}
-          onChange={(e) => setValue(uppercase ? e.target.value.toUpperCase() : e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
-          style={{
-            width: "100%", padding: "12px 14px", fontSize: 16, fontWeight: 700,
-            letterSpacing: uppercase ? "0.16em" : "normal",
-            background: "var(--surface-2)", border: "1px solid var(--line-2)", borderRadius: "var(--r-sm)",
-            color: "var(--chalk)", outline: "none",
-          }}
-        />
-        {hint && <p className="mono" style={{ fontSize: 11.5, color: "var(--faint)", marginTop: 10, letterSpacing: "0.02em" }}>{hint}</p>}
-
-        <div className="row" style={{ gap: 10, justifyContent: "flex-end", marginTop: 22 }}>
-          <button onClick={onClose} className="btn btn-outline">Cancel</button>
-          <button onClick={submit} disabled={!value.trim()} className="btn btn-primary">{submitLabel}</button>
-        </div>
-      </div>
-    </div>
   );
 }

@@ -113,9 +113,16 @@ export async function mintPlayerCards(program: Program<Worldxi>, owner: PublicKe
   const infos = await program.provider.connection.getMultipleAccountsInfo(pdas);
   const missing = playerIds.filter((_, i) => !infos[i]);
 
-  let created = 0;
-  for (let i = 0; i < missing.length; i += 4) {
-    const batch = missing.slice(i, i + 4);
+  if (missing.length === 0) return 0;
+
+  // Cards per transaction. A transaction is capped at 1232 bytes; with the shared accounts
+  // (tournament, owner, system program) listed once, eight cards land near 1130 bytes and
+  // still leave headroom.
+  const PER_TX = 8;
+
+  const txs: Transaction[] = [];
+  for (let i = 0; i < missing.length; i += PER_TX) {
+    const batch = missing.slice(i, i + PER_TX);
     const ixs = await Promise.all(
       batch.map((id) =>
         program.methods
@@ -133,11 +140,13 @@ export async function mintPlayerCards(program: Program<Worldxi>, owner: PublicKe
           .instruction()
       )
     );
-    const tx = new Transaction().add(...ixs);
-    await program.provider.sendAndConfirm!(tx);
-    created += batch.length;
+    txs.push(new Transaction().add(...ixs));
   }
-  return created;
+
+  // Send every batch through one signAllTransactions call, so the wallet asks for a single
+  // approval no matter how many transactions the cards are split across.
+  await program.provider.sendAll!(txs.map((tx) => ({ tx })));
+  return missing.length;
 }
 
 /** Reads the user's on-chain PlayerCards (living cards). */

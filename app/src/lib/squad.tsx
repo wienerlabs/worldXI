@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import type { Player, Position } from "./types";
 import { BUDGET_SOL, FORMATIONS, MAX_PER_COUNTRY } from "./types";
 import { useData } from "./data";
@@ -113,19 +114,39 @@ function defaultStarters(picks: Player[], formation: string): number[] {
 }
 
 export function SquadProvider({ children }: { children: ReactNode }) {
-  const [rawState, setState] = useState<Persisted>(() => {
+  // Drafts are stored per wallet. Switching accounts must never reveal another wallet's
+  // squad, and with no wallet connected there is nothing to show at all.
+  const { publicKey } = useWallet();
+  const storageKey = publicKey ? `${KEY}:${publicKey.toBase58()}` : null;
+
+  // The loaded key is kept next to the data so a freshly mounted (empty) state can never
+  // be written over a stored draft before that draft has been read back.
+  const [store, setStore] = useState<{ key: string | null; data: Persisted }>({ key: null, data: DEFAULT_STATE });
+
+  useEffect(() => {
+    if (!storageKey) {
+      setStore({ key: null, data: DEFAULT_STATE });
+      return;
+    }
+    let data = DEFAULT_STATE;
     try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) return parsePersisted(raw);
+      const raw = localStorage.getItem(storageKey);
+      if (raw) data = parsePersisted(raw);
     } catch {
       /* ignore */
     }
-    return DEFAULT_STATE;
-  });
+    setStore({ key: storageKey, data });
+  }, [storageKey]);
 
   useEffect(() => {
-    localStorage.setItem(KEY, JSON.stringify(rawState));
-  }, [rawState]);
+    if (!storageKey || store.key !== storageKey) return;
+    localStorage.setItem(storageKey, JSON.stringify(store.data));
+  }, [store, storageKey]);
+
+  const rawState = store.data;
+  const setState = useCallback((updater: (prev: Persisted) => Persisted) => {
+    setStore((s) => ({ ...s, data: updater(s.data) }));
+  }, []);
 
   // Always enrich picks with the current data set (photo, price, position).
   // localStorage only stores which players were selected; fields like photo

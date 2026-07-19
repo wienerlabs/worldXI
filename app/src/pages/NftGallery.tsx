@@ -24,7 +24,9 @@ export function NftGallery() {
   const [msg, setMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!wallet) return;
+    // No wallet (or one was just disconnected): show nothing rather than leaving the
+    // previous wallet's cards on screen. Switching accounts re-runs this with the new key.
+    if (!wallet) { setCards([]); return; }
     setLoading(true);
     try {
       const program = getProgram(connection, wallet);
