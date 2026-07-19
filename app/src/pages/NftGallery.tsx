@@ -4,12 +4,13 @@ import { Link } from "react-router-dom";
 import { useData } from "../lib/data";
 import { useSquad } from "../lib/squad";
 import { PlayerCard } from "../components/PlayerCard";
-import { fetchMyCards, getProgram, mintPlayerCards, type OnchainCard } from "../lib/anchor";
+import { fetchMyCards, getProgram, type OnchainCard } from "../lib/anchor";
 
 /**
  * My Cards - the user's REAL on-chain "living cards" (PlayerCard accounts).
  * Each card accumulates a performance history on the chain (matches played, points, MVP, best
- * score). After the squad is submitted, they are created on-chain via "Mint".
+ * score). Cards are created automatically when a squad is submitted, and they are kept when the
+ * squad changes: only players in the active squad keep earning new points.
  */
 export function NftGallery() {
   const { connected } = useWallet();
@@ -20,8 +21,7 @@ export function NftGallery() {
 
   const [cards, setCards] = useState<OnchainCard[]>([]);
   const [loading, setLoading] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
+  const [onlyActive, setOnlyActive] = useState(false);
 
   const load = useCallback(async () => {
     // No wallet (or one was just disconnected): show nothing rather than leaving the
@@ -39,22 +39,6 @@ export function NftGallery() {
   }, [wallet, connection]);
 
   useEffect(() => { void load(); }, [load]);
-
-  const onMint = async () => {
-    if (!wallet || picks.length === 0) return;
-    setBusy(true); setMsg("Minting your living cards on-chain… approve in your wallet.");
-    try {
-      const program = getProgram(connection, wallet);
-      const n = await mintPlayerCards(program, wallet.publicKey, picks.map((p) => p.playerId));
-      setMsg(n > 0 ? `${n} card(s) minted on-chain.` : "All your cards are already minted.");
-      await load();
-    } catch (e) {
-      const raw = e instanceof Error ? e.message : String(e);
-      setMsg(/reject/i.test(raw) ? "Transaction rejected in your wallet." : `Error: ${raw}`);
-    } finally {
-      setBusy(false);
-    }
-  };
 
   /* ---------- Wallet gate ---------- */
   if (!connected) {
@@ -89,14 +73,16 @@ export function NftGallery() {
     );
   }
 
-  const mintedIds = new Set(cards.map((c) => c.playerId));
-  const unminted = picks.filter((p) => !mintedIds.has(p.playerId));
+  // Cards belong to the wallet for good; the active squad only decides which ones keep
+  // earning points. The filter lets the manager narrow the vault down to those.
+  const activeIds = new Set(picks.map((p) => p.playerId));
+  const shownCards = onlyActive ? cards.filter((c) => activeIds.has(c.playerId)) : cards;
+  const activeCount = cards.filter((c) => activeIds.has(c.playerId)).length;
 
   /* ---------- Vault aggregates: REAL tournament stats for owned cards ---------- */
   const totalPoints = cards.reduce((s, c) => s + (statsById.get(c.playerId)?.totalPoints ?? 0), 0);
   const totalMatches = cards.reduce((s, c) => s + (statsById.get(c.playerId)?.matchesPlayed ?? 0), 0);
   const totalMvp = cards.reduce((s, c) => s + (statsById.get(c.playerId)?.mvpCount ?? 0), 0);
-  const msgIsError = msg ? /error|reject/i.test(msg) : false;
 
   return (
     <div style={{ marginTop: 24 }}>
@@ -111,11 +97,33 @@ export function NftGallery() {
             Not static collectibles — each is an on-chain PlayerCard that builds a real
             performance history: matches, points, MVPs and best score.
           </p>
+          <p className="mono" style={{ marginTop: 12, fontSize: 12.5, color: "var(--faint)", maxWidth: "62ch", lineHeight: 1.6 }}>
+            Cards are created with your squad and stay yours even after you change it. Only players
+            in your active squad keep earning new points; the rest keep the history they already have.
+          </p>
         </div>
-        {unminted.length > 0 && (
-          <button className="btn btn-pitch btn-lg" disabled={busy} onClick={onMint}>
-            {busy ? "Minting…" : `Mint ${unminted.length} card${unminted.length > 1 ? "s" : ""} on-chain`}
-          </button>
+        {cards.length > 0 && (
+          <div className="row" style={{ gap: 6, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--r)", padding: 5, flexShrink: 0 }}>
+            {[
+              { key: false, label: `All ${cards.length}` },
+              { key: true, label: `Active squad ${activeCount}` },
+            ].map((opt) => (
+              <button
+                key={String(opt.key)}
+                onClick={() => setOnlyActive(opt.key)}
+                className="mono"
+                style={{
+                  padding: "8px 14px", fontSize: 11.5, letterSpacing: "0.08em", textTransform: "uppercase",
+                  borderRadius: "var(--r-sm)", fontWeight: 700,
+                  background: onlyActive === opt.key ? "var(--surface-3)" : "transparent",
+                  border: onlyActive === opt.key ? "1px solid var(--line-2)" : "1px solid transparent",
+                  color: onlyActive === opt.key ? "var(--chalk)" : "var(--muted)",
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         )}
       </section>
 
@@ -141,39 +149,6 @@ export function NftGallery() {
           <span style={{ width: 1, background: "var(--line-2)", alignSelf: "stretch" }} />
           <HudStat value={totalMvp.toString()} label="MVP awards" accent="gold" />
         </section>
-      )}
-
-      {/* ================= MINT STATUS MESSAGE ================= */}
-      {msg && (
-        <div
-          className="panel rise"
-          style={{
-            marginTop: 20,
-            padding: "14px 18px",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            borderColor: msgIsError ? "var(--danger)" : "var(--line-2)",
-            background: msgIsError
-              ? "rgba(255,90,90,0.06)"
-              : "linear-gradient(180deg, rgba(198,242,78,0.05), rgba(255,255,255,0))",
-          }}
-        >
-          <span
-            className="mono"
-            style={{
-              fontSize: 10.5,
-              fontWeight: 700,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: msgIsError ? "var(--danger)" : "var(--volt)",
-              flexShrink: 0,
-            }}
-          >
-            {busy ? "Signing" : msgIsError ? "Notice" : "On-chain"}
-          </span>
-          <span style={{ fontSize: 14, fontWeight: 600 }}>{msg}</span>
-        </div>
       )}
 
       {/* ================= LOADING ================= */}
@@ -210,33 +185,55 @@ export function NftGallery() {
           </h3>
           <p className="muted" style={{ marginTop: 10, maxWidth: "46ch", marginInline: "auto", fontSize: 14.5 }}>
             {picks.length === 0
-              ? "Build a national-team XI, submit it, then mint your living cards here — each one starts its on-chain career the moment it's minted."
-              : 'Tap "Mint" above to create your living cards on Solana and start tracking their real performance history.'}
+              ? "Build a national-team XI and submit it. Your cards are created with it and start their on-chain career straight away."
+              : "Submit your squad on-chain from the draft room. Cards for all 15 players are created in the same step."}
           </p>
-          {picks.length === 0 ? (
-            <Link to="/build" className="btn btn-primary btn-lg" style={{ marginTop: 24 }}>Build a squad →</Link>
-          ) : (
-            <button className="btn btn-pitch btn-lg" style={{ marginTop: 24 }} disabled={busy} onClick={onMint}>
-              {busy ? "Minting…" : `Mint ${unminted.length} card${unminted.length > 1 ? "s" : ""} on-chain`}
-            </button>
-          )}
+          <Link to="/build" className="btn btn-primary btn-lg" style={{ marginTop: 24 }}>
+            {picks.length === 0 ? "Build a squad →" : "Go to draft room →"}
+          </Link>
+        </div>
+      )}
+
+      {!loading && cards.length > 0 && shownCards.length === 0 && (
+        <div className="empty-state rise" style={{ marginTop: 30, padding: "40px 26px" }}>
+          <p className="muted" style={{ fontSize: 14.5, margin: 0 }}>
+            None of your cards are in the active squad right now.
+          </p>
         </div>
       )}
 
       {/* ================= CARD VAULT GRID ================= */}
-      {!loading && cards.length > 0 && (
+      {!loading && shownCards.length > 0 && (
         <section
           className="grid"
           style={{ marginTop: 30, gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 26, justifyItems: "center" }}
         >
-          {cards.map((c, i) => {
+          {shownCards.map((c, i) => {
             const p = playerById.get(c.playerId);
             if (!p) return null;
+            const inSquad = activeIds.has(c.playerId);
             return (
               <div key={c.playerId} className="rise" style={{ animationDelay: `${Math.min(i, 8) * 0.05}s`, width: 200 }}>
-                <Link to={`/player/${c.playerId}`}>
-                  <PlayerCard player={p} country={countryByIso.get(p.nationalTeam)} width={200} />
-                </Link>
+                <div style={{ position: "relative" }}>
+                  <Link to={`/player/${c.playerId}`}>
+                    <PlayerCard player={p} country={countryByIso.get(p.nationalTeam)} width={200} />
+                  </Link>
+                  {/* Marks the cards that are still earning points, so the vault reads at a glance. */}
+                  {inSquad && (
+                    <span
+                      className="mono"
+                      title="In your active squad: still earning points"
+                      style={{
+                        position: "absolute", top: 8, left: 8, zIndex: 2,
+                        background: "var(--volt)", color: "var(--on-volt)",
+                        fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase",
+                        padding: "3px 7px", borderRadius: 999,
+                      }}
+                    >
+                      Active
+                    </span>
+                  )}
+                </div>
 
                 {/* On-chain dossier strip */}
                 <div className="panel panel-notch" style={{ marginTop: 12, padding: "12px 14px" }}>

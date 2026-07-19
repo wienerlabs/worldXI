@@ -4,12 +4,12 @@ A live, onchain fantasy football game themed around the 2026 World Cup. Built on
 
 > Superteam Earn "World Cup" hackathon, "Consumer and Fan Experiences" track.
 
-Players build a 15-man squad from national-team footballers within a virtual 25 SOL budget and pick a starting 11. Each footballer's real match performance turns into fantasy points that are committed onchain live during the match. Every player card is an onchain asset that accumulates performance history.
+Players build a 15-man squad from national-team footballers within a virtual 35 SOL budget and pick a starting 11. Each footballer's real match performance turns into fantasy points that are committed onchain live during the match. Every player card is an onchain asset that accumulates performance history.
 
 ## What makes it different
 
 1. Live onchain settlement: points are written to the chain DURING the match (`commit_score`), not after it. The leaderboard moves throughout the game.
-2. Living cards: each card accumulates an onchain career history (matches played, total points, MVPs, best score).
+2. Living cards: each card accumulates an onchain career history (matches played, total points, MVPs, best score). Cards are created together with the squad in a single approval, and they stay with the wallet when the squad changes; only players in the active squad keep earning new points. A wallet can close its own accounts (squad, cards, snapshots, profile) at any time and reclaim the rent.
 3. Live match center: the full tournament fixture list, live scores, minute, event feed (goals, cards, substitutions) and player ratings, all from real data.
 
 No-risk model (a design choice): no entry fees, no betting, no pooled prizes. Prize leagues are funded only by sponsors; users never put money at risk. Revenue: secondary-market royalties, premium/cosmetic mints, and sponsor partnerships.
@@ -31,6 +31,8 @@ No mock, dummy, or placeholder data. The player universe and all performances ar
 | Program ID | `A5dEqv3cB8tpxT1vQ6WTc88hC5vSvE6unSQvWodMvAfL` |
 | Tournament PDA | `3PZ3tsLCdxWuzuhdNt8rngftT3EphR6YUNjphRvoopvj` |
 | cNFT merkle tree | `BxC8kYgcdM3z6HssXCz4dyDEQHf1wQRizAyXUJUW2h2r` |
+| Live app | https://world-xi-lilac.vercel.app |
+| Oracle API | https://worldxi-production.up.railway.app |
 | Network | Solana devnet (program), TxLINE (live data feed) |
 | Players | 1246 real WC 2026 footballers |
 
@@ -53,7 +55,7 @@ Instructions: `init_tournament`, `register_player`, `create_profile`, `submit_sq
 `set_lineup`, `set_matchday`, `commit_score`, `create_player_card`, `settle_squad_matchday`,
 `create_sponsor_league`, `settle_sponsor_league`.
 
-- Squad validation (25 SOL budget, max 3 per country, position limits, formation, captain) runs entirely onchain.
+- Squad validation (35 SOL budget, max 3 per country, position limits, formation, captain) runs entirely onchain.
 - Live scoring: `commit_score` updates each player's total instantly via a delta (idempotent, batched commits).
 - Settlement: `settle_squad_matchday` applies the rarity bonus (Common/Rare/Legendary = 1.00/1.05/1.10x) and the captain 2x multiplier.
 - Match lock: squads cannot be changed while a matchday is in play (locked).
@@ -117,7 +119,7 @@ cd app && npm install && npm run dev   # http://localhost:5173
 Pages:
 
 - Home: intro, concept and main actions
-- Build: build a squad within the 25 SOL budget, choose formation and captain, submit onchain
+- Build: build a squad within the 35 SOL budget, choose formation and captain, submit onchain
 - My Squad: pitch view, starting 11 / bench swaps, captain
 - Matches: full-tournament day selector, live/upcoming/past matches (live score, minute, HT, FT)
 - Match detail: score header, timed event feed (goals/cards/subs/half time), lineups, player ratings + MVP
@@ -153,7 +155,7 @@ Final points: `raw x rarity x (captain ? 2 : 1)`.
 
 ## Squad rules
 
-- Budget: 25 SOL
+- Budget: 35 SOL
 - Squad: 15 players, a starting 11 is selected
 - Position limits: goalkeeper 2, defender 5, midfielder 5, forward 3
 - At most 3 players per country

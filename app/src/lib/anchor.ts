@@ -14,6 +14,10 @@ const TOURNAMENT_NAME = (import.meta.env.VITE_TOURNAMENT as string | undefined) 
 const PROGRAM_ID = new PublicKey((idl as { address: string }).address);
 
 const enc = new TextEncoder();
+
+/** Cards per transaction. A transaction is capped at 1232 bytes; with the shared accounts
+ *  listed once, eight cards land near 1130 bytes and still leave headroom. */
+const CARDS_PER_TX = 8;
 const u32le = (n: number) => { const b = new Uint8Array(4); new DataView(b.buffer).setUint32(0, n >>> 0, true); return b; };
 
 const POS_ANCHOR: Record<string, object> = { GK: { goalkeeper: {} }, DEF: { defender: {} }, MID: { midfielder: {} }, FWD: { forward: {} } };
@@ -101,55 +105,6 @@ export interface OnchainCard {
   mint: string;
 }
 
-/**
- * Creates on-chain PlayerCards (living cards) for the user's squad.
- * Until the cNFT (Bubblegum) mint is linked, the mint field is PublicKey.default. Cards
- * are sent in batches (tx size limit). Existing ones are skipped.
- */
-export async function mintPlayerCards(program: Program<Worldxi>, owner: PublicKey, playerIds: number[]): Promise<number> {
-  const t = tournamentPda();
-  // Detect already existing cards (avoid recreating them).
-  const pdas = playerIds.map((id) => cardPda(t, owner, id));
-  const infos = await program.provider.connection.getMultipleAccountsInfo(pdas);
-  const missing = playerIds.filter((_, i) => !infos[i]);
-
-  if (missing.length === 0) return 0;
-
-  // Cards per transaction. A transaction is capped at 1232 bytes; with the shared accounts
-  // (tournament, owner, system program) listed once, eight cards land near 1130 bytes and
-  // still leave headroom.
-  const PER_TX = 8;
-
-  const txs: Transaction[] = [];
-  for (let i = 0; i < missing.length; i += PER_TX) {
-    const batch = missing.slice(i, i + PER_TX);
-    const ixs = await Promise.all(
-      batch.map((id) =>
-        program.methods
-          .createPlayerCard(id, PublicKey.default)
-          // `card` is passed explicitly: Anchor cannot derive this PDA on its own here
-          // (its seeds mix account keys with an instruction argument), and leaving it to
-          // automatic resolution fails with "Reached maximum depth for account resolution".
-          .accountsPartial({
-            tournament: t,
-            player: playerPda(t, id),
-            card: cardPda(t, owner, id),
-            owner,
-            systemProgram: SystemProgram.programId,
-          })
-          .instruction()
-      )
-    );
-    txs.push(new Transaction().add(...ixs));
-  }
-
-  // Send every batch through one signAllTransactions call, so the wallet asks for a single
-  // approval no matter how many transactions the cards are split across.
-  await program.provider.sendAll!(txs.map((tx) => ({ tx })));
-  return missing.length;
-}
-
-/** Reads the user's on-chain PlayerCards (living cards). */
 export async function fetchMyCards(program: Program<Worldxi>, owner: PublicKey): Promise<OnchainCard[]> {
   const rows = await program.account.playerCard.all([
     { memcmp: { offset: 8 + 32, bytes: owner.toBase58() } }, // owner = after tournament(32)
@@ -193,9 +148,22 @@ export async function createProfile(program: Program<Worldxi>, owner: PublicKey,
     .rpc();
 }
 
+export interface SubmitSquadResult {
+  /** Signature of the squad transaction. */
+  signature: string;
+  /** How many player cards were created as part of this submit. */
+  cardsCreated: number;
+}
+
 /**
- * Submits the onchain squad (submit_squad + 15 player remaining accounts). If the profile
- * does not exist yet, create_profile is prepended to the same transaction -> single signature.
+ * Submits the squad and creates any missing player cards in one go.
+ *
+ * Cards are not optional: settle_squad_matchday can only score a player that already has a
+ * card, so leaving minting as a separate step meant a manager could silently lose points.
+ * Everything goes through a single signAllTransactions call, so the wallet asks once.
+ *
+ * The profile is prepended to the squad transaction on a first submit. Retrying after a
+ * partial failure is safe: the squad is idempotent and existing cards are skipped.
  */
 export async function submitSquad(
   program: Program<Worldxi>,
@@ -206,26 +174,58 @@ export async function submitSquad(
   captainId: number,
   nickname?: string,
   country?: string
-): Promise<string> {
+): Promise<SubmitSquadResult> {
   const t = tournamentPda();
   const players = picks.map((p) => p.playerId);
-  const starters = starterIds;
 
-  let builder = program.methods
-    .submitSquad(players, starters, FORM_ANCHOR[formation] as never, captainId)
+  const squadIx = await program.methods
+    .submitSquad(players, starterIds, FORM_ANCHOR[formation] as never, captainId)
     .accountsPartial({ tournament: t, owner, systemProgram: SystemProgram.programId })
-    .remainingAccounts(players.map((id) => ({ pubkey: playerPda(t, id), isSigner: false, isWritable: false })));
+    .remainingAccounts(players.map((id) => ({ pubkey: playerPda(t, id), isSigner: false, isWritable: false })))
+    .instruction();
 
-  // If no profile exists, create it in the same transaction (single wallet signature). Country is optional.
+  const squadTx = new Transaction();
+  // First submit: create the profile in the same transaction. Country is optional.
   if (nickname) {
     const cc = country ? Array.from(enc.encode(country)).slice(0, 3) : null;
     const profileIx = await program.methods
       .createProfile(nickname, cc as number[] | null)
       .accountsPartial({ owner, systemProgram: SystemProgram.programId })
       .instruction();
-    builder = builder.preInstructions([profileIx]);
+    squadTx.add(profileIx);
   }
-  return builder.rpc();
+  squadTx.add(squadIx);
+
+  // Cards this wallet does not own yet. Players already carrying a card keep their history.
+  const infos = await program.provider.connection.getMultipleAccountsInfo(
+    players.map((id) => cardPda(t, owner, id))
+  );
+  const missing = players.filter((_, i) => !infos[i]);
+
+  const cardTxs: Transaction[] = [];
+  for (let i = 0; i < missing.length; i += CARDS_PER_TX) {
+    const ixs = await Promise.all(
+      missing.slice(i, i + CARDS_PER_TX).map((id) =>
+        program.methods
+          .createPlayerCard(id, PublicKey.default)
+          // `card` is passed explicitly: Anchor cannot derive this PDA on its own here
+          // (its seeds mix account keys with an instruction argument), and leaving it to
+          // automatic resolution fails with "Reached maximum depth for account resolution".
+          .accountsPartial({
+            tournament: t,
+            player: playerPda(t, id),
+            card: cardPda(t, owner, id),
+            owner,
+            systemProgram: SystemProgram.programId,
+          })
+          .instruction()
+      )
+    );
+    cardTxs.push(new Transaction().add(...ixs));
+  }
+
+  const sigs = await program.provider.sendAll!([{ tx: squadTx }, ...cardTxs.map((tx) => ({ tx }))]);
+  return { signature: sigs[0] ?? "", cardsCreated: missing.length };
 }
 
 export { BN };

@@ -7,14 +7,14 @@ Solana **devnet** · Program ID `A5dEqv3cB8tpxT1vQ6WTc88hC5vSvE6unSQvWodMvAfL`
 
 ## 1. Core Idea
 
-WorldXI is a live, onchain fantasy football game themed around the 2026 World Cup. A user builds a 15-player squad from the real called-up players of 48 national teams within a **25 SOL virtual budget**, scores fantasy points from real match performance, and watches the leaderboard move **during** matches. Every player is a **living card** that accrues an onchain performance history (matches, points, MVPs, best score).
+WorldXI is a live, onchain fantasy football game themed around the 2026 World Cup. A user builds a 15-player squad from the real called-up players of 48 national teams within a **35 SOL virtual budget**, scores fantasy points from real match performance, and watches the leaderboard move **during** matches. Every player is a **living card** that accrues an onchain performance history (matches, points, MVPs, best score).
 
 ---
 
 ## 2. Why It's Different
 
 - **Live onchain settlement.** Points are committed to the chain *during* the match (per event), not at full-time - the player and manager leaderboards move live. Classic fantasy and Sorare settle at full-time; this live movement is the core originality bet.
-- **Living cards.** A card is not a static collectible; its onchain `PlayerCard` account accrues career history - matches played, total points, MVP count, best single score. *Proof: 30 `PlayerCard` accounts minted; performance updated onchain by `settle_squad_matchday`.*
+- **Living cards.** A card is not a static collectible; its onchain `PlayerCard` account accrues career history - matches played, total points, MVP count, best single score. Cards are created in the same signed batch as `submit_squad` (a player cannot be scored without one), and they persist when the squad changes: only players in the active squad keep earning new points. Closing instructions let a wallet delete its own squad, cards, snapshots and profile and reclaim the rent; league membership is intentionally not closable. *Proof: 30 `PlayerCard` accounts minted; performance updated onchain by `settle_squad_matchday`.*
 - **No-risk by design.** No betting, no interest, no user-funded pools. Prize leagues are **100% sponsor-funded** - a user never risks money. Revenue comes from secondary-market royalties, premium/cosmetic mints, and sponsor partnerships. This is a differentiation for regulation-sensitive markets, not a limitation.
 
 ---
@@ -53,7 +53,7 @@ Only score/event/lineup data is consumed. **Odds/betting data is never requested
 **Onchain - Anchor 0.31.1, Solana devnet**
 - Program ID `A5dEqv3cB8tpxT1vQ6WTc88hC5vSvE6unSQvWodMvAfL`, Tournament PDA `3PZ3tsLCdxWuzuhdNt8rngftT3EphR6YUNjphRvoopvj`.
 - 7 state accounts: `Tournament`, `Player`, `Squad`, `PlayerCard`, `ScoreCommit`, `SponsorLeague`, `UserProfile`.
-- 12 instructions. On-chain validation in `submit_squad`: budget ≤ 25 SOL, max 3 per country, formation position distribution, captain ∈ starters, unique players, remaining-account PDA verification (no spoofed accounts).
+- 18 instructions. On-chain validation in `submit_squad`: budget ≤ 35 SOL, max 3 per country, formation position distribution, captain ∈ starters, unique players, remaining-account PDA verification (no spoofed accounts).
 
 **Backend / Oracle - Node.js + TypeScript**
 - TxLINE client (poll + SSE + auth/retry) · ESPN layer (roster, box score, schedule, bridge, photo) · scoring engine · TxLINE<->ESPN bridge · committer (idempotent, batched) · orchestrator (replay + live SSE) · REST + WebSocket API.
@@ -87,7 +87,7 @@ Captain scores **2×**; rarity bonus (**Rare +5%**, **Legendary +10%**) is appli
 ## 6. Data Layer
 
 - **48 teams × 26 = 1,246 players** from official World Cup rosters, matched by player id (no fragile name matching -> e.g. a striker's every goal counts correctly).
-- **Pricing/tiers** - 5 tiers calibrated to the 25 SOL budget: Legendary 4.0 · Star 2.8 · Solid 1.7 · Rotation 1.0 · Budget 0.6 SOL. Distribution ≈ 3% / 12% / 25% / 35% / 25%. Assignment is **hybrid**: a curated star list guarantees known world-class players an upper tier, the rest ranks by retroactive fantasy performance (so an injured star isn't mispriced cheap, and the "you can't buy every star" scarcity holds - cheapest valid XI ≈ 9 SOL, a balanced squad ≈ 24 SOL).
+- **Pricing/tiers** - 5 tiers calibrated to the 35 SOL budget: Legendary 4.0 · Star 2.8 · Solid 1.7 · Rotation 1.0 · Budget 0.6 SOL. Distribution ≈ 3% / 12% / 25% / 35% / 25%. Assignment is **hybrid**: a curated star list guarantees known world-class players an upper tier, the rest ranks by retroactive fantasy performance (so an injured star isn't mispriced cheap, and the "you can't buy every star" scarcity holds - cheapest valid XI ≈ 9 SOL, a balanced squad ≈ 24 SOL).
 
 ---
 

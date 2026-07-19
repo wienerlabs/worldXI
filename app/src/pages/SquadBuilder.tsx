@@ -72,8 +72,11 @@ export function SquadBuilder() {
     setBusy(true); setMsg("Preparing transaction… approve it in your wallet.");
     try {
       const program = getProgram(connection, anchorWallet);
-      const sig = await submitSquad(program, wallet.publicKey, picks, starterIds, formation, captainId!, nickname, country);
-      setMsg(`Squad submitted on-chain! Tx: ${sig.slice(0, 12)}… — taking you to your squad…`);
+      const { signature, cardsCreated } = await submitSquad(
+        program, wallet.publicKey, picks, starterIds, formation, captainId!, nickname, country
+      );
+      const cardNote = cardsCreated > 0 ? ` ${cardsCreated} player card${cardsCreated === 1 ? "" : "s"} minted.` : "";
+      setMsg(`Squad submitted on-chain! Tx: ${signature.slice(0, 12)}…${cardNote} Taking you to your squad…`);
       // Sign complete → show the manager their line-up on the pitch.
       setTimeout(() => nav("/squad"), 1200);
     } catch (e) {
