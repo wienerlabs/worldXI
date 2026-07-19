@@ -15,7 +15,7 @@ import type { TxlineClient } from "../txline/client.js";
 import type { TxFixture, TxScores, TxParticipantScore } from "../txline/types.js";
 import { toIsoAlpha3 } from "../pipeline/countries.js";
 import { discoverWorldCupFixtures } from "../pipeline/universe.js";
-import { fetchEspnSummary, type EspnMatchEvent, type EspnStatus, type EspnSummary } from "../espn/matchEvents.js";
+import { fetchEspnSummary, type EspnMatchEvent, type EspnStatus, type EspnSummary, type EspnTeamStats } from "../espn/matchEvents.js";
 import { logger, errorMessage } from "../logger.js";
 
 const WC_COMPETITION_ID = 72;
@@ -71,6 +71,8 @@ export interface MatchDetail extends MatchSummary {
   events: MatchEvent[];
   lineups: Array<{ team: "home" | "away"; players: Array<{ playerId: number; name: string; number: string; starter: boolean }> }>;
   playerRatings: MatchPlayerRating[];
+  /** Per-team match statistics (possession, shots, passes, ...) from the ESPN box score. */
+  teamStats: EspnTeamStats | null;
 }
 
 /** A participant's total goals (from period-based Score). */
@@ -305,7 +307,7 @@ export function createMatchesApi(cfg: Config, state: OracleState, txline: Txline
       const p1Home = fx.Participant1IsHome !== false;
       // ESPN summary is AUXILIARY: event detail (name/assist) + status confirmation. Primary status is TxLINE.
       const bridge = state.matchBridge.get(fixtureId);
-      const espn: EspnSummary = bridge ? await espnSummaryFor(bridge.espnEventId) : { events: [], status: null };
+      const espn: EspnSummary = bridge ? await espnSummaryFor(bridge.espnEventId) : { events: [], status: null, teamStats: null };
       const summary = summarize(fx, snap, now(), state.countries, espn.status);
       // Full timeline priority order:
       //  1) ESPN keyEvents - with minute, names, including assist/sub-in-out (richest)
@@ -349,7 +351,7 @@ export function createMatchesApi(cfg: Config, state: OracleState, txline: Txline
         })
         .sort((a, b) => b.rawPoints - a.rawPoints);
 
-      const detail: MatchDetail = { ...summary, events, lineups, playerRatings };
+      const detail: MatchDetail = { ...summary, events, lineups, playerRatings, teamStats: espn.teamStats };
       res.json(detail);
     } catch (error: unknown) {
       logger.error("match detail error", { error: errorMessage(error) });

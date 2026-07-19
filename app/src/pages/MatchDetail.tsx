@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchMatchDetail, type MatchDetailData, type MatchEvent, type MatchPlayerRating } from "../lib/api";
+import { fetchMatchDetail, type MatchDetailData, type MatchEvent, type MatchPlayerRating, type TeamStats } from "../lib/api";
 
 /** Tek mac detayi: skor basligi + canli olay akisi + dizilis. Veri TxLINE canli
  *  feed'inden (oracle /match/:id). Canli maclarda 6sn'de yenilenir. */
@@ -141,6 +141,22 @@ export function MatchDetail() {
           {m.competition} · {kickoff}
         </div>
       </section>
+
+      {/* ===================== TEAM STATS ===================== */}
+      {m.teamStats && (
+        <section className="section" style={{ marginTop: 44 }}>
+          <div className="section-head">
+            <div className="eyebrow gold">Match stats</div>
+            <h2 className="section-title" style={{ marginTop: 10, fontSize: "clamp(22px, 3vw, 32px)" }}>Team by team</h2>
+            <p className="section-sub">Live from the ESPN box score. Updates as the match plays.</p>
+          </div>
+          <TeamStatsPanel
+            stats={m.teamStats}
+            home={{ label: m.home.iso ?? m.home.name, flag: m.home.flag }}
+            away={{ label: m.away.iso ?? m.away.name, flag: m.away.flag }}
+          />
+        </section>
+      )}
 
       {/* ===================== EVENT FEED ===================== */}
       <section className="section" style={{ marginTop: 44 }}>
@@ -327,6 +343,85 @@ function LineupList({ players }: { players: Array<{ playerId: number; name: stri
           {bench.map((p) => <Row key={p.playerId} p={p} />)}
         </>
       )}
+    </div>
+  );
+}
+
+/** Stat rows to show, in order. `pct` values are already a percentage; `ratio` values are
+ *  a 0..1 fraction (ESPN reports pass/shot accuracy that way) shown as a percentage. */
+const STAT_ROWS: Array<{ key: string; label: string; pct?: boolean; ratio?: boolean }> = [
+  { key: "possessionPct", label: "Possession", pct: true },
+  { key: "totalShots", label: "Shots" },
+  { key: "shotsOnTarget", label: "Shots on target" },
+  { key: "totalPasses", label: "Passes" },
+  { key: "passPct", label: "Pass accuracy", ratio: true },
+  { key: "wonCorners", label: "Corners" },
+  { key: "offsides", label: "Offsides" },
+  { key: "foulsCommitted", label: "Fouls" },
+  { key: "totalTackles", label: "Tackles" },
+  { key: "interceptions", label: "Interceptions" },
+  { key: "totalCrosses", label: "Crosses" },
+  { key: "totalClearance", label: "Clearances" },
+  { key: "saves", label: "Saves" },
+  { key: "yellowCards", label: "Yellow cards" },
+];
+
+interface TeamSide {
+  label: string;
+  flag: string | null;
+}
+
+/** Head-to-head team statistics: each row shows both sides with a proportional split bar,
+ *  the higher side highlighted. Rows with no data on either side are dropped. */
+function TeamStatsPanel({ stats, home, away }: { stats: TeamStats; home: TeamSide; away: TeamSide }) {
+  const rows = STAT_ROWS.map((r) => {
+    const hRaw = stats.home[r.key];
+    const aRaw = stats.away[r.key];
+    if (hRaw === undefined && aRaw === undefined) return null;
+    const h = hRaw ?? 0;
+    const a = aRaw ?? 0;
+    const fmt = (v: number): string => (r.pct ? `${Math.round(v)}%` : r.ratio ? `${Math.round(v * 100)}%` : String(v));
+    const total = h + a;
+    const hShare = total > 0 ? (h / total) * 100 : 50;
+    return { label: r.label, h, a, hText: fmt(h), aText: fmt(a), hShare };
+  }).filter((x): x is NonNullable<typeof x> => x !== null);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="panel panel-flush panel-notch rise" style={{ padding: "20px clamp(16px,3vw,28px)" }}>
+      {/* team header */}
+      <div className="between" style={{ marginBottom: 16 }}>
+        <div className="row" style={{ gap: 8 }}>
+          <span style={{ fontSize: 18 }}>{home.flag}</span>
+          <span className="mono" style={{ fontWeight: 800, letterSpacing: "0.08em", color: "var(--gold)" }}>{home.label}</span>
+        </div>
+        <div className="row" style={{ gap: 8 }}>
+          <span className="mono" style={{ fontWeight: 800, letterSpacing: "0.08em", color: "var(--volt)" }}>{away.label}</span>
+          <span style={{ fontSize: 18 }}>{away.flag}</span>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gap: 15 }}>
+        {rows.map((r) => {
+          const homeLeads = r.h > r.a;
+          const awayLeads = r.a > r.h;
+          return (
+            <div key={r.label}>
+              <div className="between" style={{ marginBottom: 6, alignItems: "baseline" }}>
+                <span className="num" style={{ fontSize: 17, minWidth: 44, color: homeLeads ? "var(--gold)" : "var(--chalk-2)" }}>{r.hText}</span>
+                <span className="mono" style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)" }}>{r.label}</span>
+                <span className="num" style={{ fontSize: 17, minWidth: 44, textAlign: "right", color: awayLeads ? "var(--volt)" : "var(--chalk-2)" }}>{r.aText}</span>
+              </div>
+              {/* split bar: home share on the left, away on the right */}
+              <div style={{ display: "flex", height: 5, borderRadius: 3, overflow: "hidden", background: "var(--surface-3)" }}>
+                <div style={{ width: `${r.hShare}%`, background: homeLeads ? "var(--gold)" : "var(--gold-deep)", opacity: homeLeads ? 1 : 0.55 }} />
+                <div style={{ width: `${100 - r.hShare}%`, background: awayLeads ? "var(--volt)" : "var(--volt-deep)", opacity: awayLeads ? 1 : 0.55 }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -97,10 +97,16 @@ export interface MatchPlayerRating {
   wasMvp: boolean;
   photo: string;
 }
+export interface TeamStats {
+  /** Per-team stats keyed by ESPN name (possessionPct, totalShots, totalPasses, ...). */
+  home: Record<string, number>;
+  away: Record<string, number>;
+}
 export interface MatchDetailData extends MatchSummary {
   events: MatchEvent[];
   lineups: Array<{ team: "home" | "away"; players: Array<{ playerId: number; name: string; number: string; starter: boolean }> }>;
   playerRatings: MatchPlayerRating[];
+  teamStats: TeamStats | null;
 }
 
 export const fetchMatches = (day?: number): Promise<{ day: number; matches: MatchSummary[] }> =>

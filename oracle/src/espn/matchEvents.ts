@@ -30,9 +30,16 @@ export interface EspnStatus {
   halftime: boolean;
 }
 
+/** Per-team match statistics, keyed by ESPN stat name (possessionPct, totalShots, ...). */
+export interface EspnTeamStats {
+  home: Record<string, number>;
+  away: Record<string, number>;
+}
+
 export interface EspnSummary {
   events: EspnMatchEvent[];
   status: EspnStatus | null;
+  teamStats: EspnTeamStats | null;
 }
 
 interface SummaryEvent {
@@ -48,9 +55,25 @@ interface SummaryHeader {
     status?: { type?: { state?: string; completed?: boolean; description?: string } };
   }>;
 }
+interface SummaryBoxTeam {
+  team?: { id?: string };
+  statistics?: Array<{ name?: string; value?: number; displayValue?: string }>;
+}
 interface Summary {
   keyEvents?: SummaryEvent[];
   header?: SummaryHeader;
+  boxscore?: { teams?: SummaryBoxTeam[] };
+}
+
+/** Parses one team's statistics array into a name -> number map, skipping non-numeric fields. */
+function parseTeamStats(team: SummaryBoxTeam | undefined): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const st of team?.statistics ?? []) {
+    if (!st.name) continue;
+    const v = Number(st.value ?? st.displayValue);
+    if (Number.isFinite(v)) out[st.name] = v;
+  }
+  return out;
 }
 
 /** ESPN keyEvent type slug -> our type. Filters out meaningless ones (kickoff, halftime...). */
@@ -82,11 +105,11 @@ export async function fetchEspnSummary(eventId: string): Promise<EspnSummary> {
   let data: Summary;
   try {
     const res = await fetch(`${BASE}?event=${eventId}`);
-    if (!res.ok) return { events: [], status: null };
+    if (!res.ok) return { events: [], status: null, teamStats: null };
     data = (await res.json()) as Summary;
   } catch (e: unknown) {
     logger.warn("Failed to fetch ESPN summary", { eventId, error: errorMessage(e) });
-    return { events: [], status: null };
+    return { events: [], status: null, teamStats: null };
   }
 
   const competition = data.header?.competitions?.[0];
@@ -130,5 +153,11 @@ export async function fetchEspnSummary(eventId: string): Promise<EspnSummary> {
       }
     : null;
 
-  return { events: out.sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0)), status };
+  const boxTeams = data.boxscore?.teams ?? [];
+  const homeBox = boxTeams.find((t) => t.team?.id === homeId);
+  const awayBox = boxTeams.find((t) => t.team?.id === awayId);
+  const teamStats: EspnTeamStats | null =
+    homeBox && awayBox ? { home: parseTeamStats(homeBox), away: parseTeamStats(awayBox) } : null;
+
+  return { events: out.sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0)), status, teamStats };
 }
